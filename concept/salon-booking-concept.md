@@ -4,6 +4,8 @@
 
 Build a **modular one-page web application** for small Swiss coiffeur shops that want a simple, affordable online booking solution without the complexity of large salon platforms.
 
+The product should be sold primarily as a **hosted SaaS offering**, where each salon gets its own tenant, branded booking page, and admin access without needing to install software locally.
+
 The product should help salons with three core needs:
 
 1. **Accept bookings online**
@@ -12,11 +14,23 @@ The product should help salons with three core needs:
 
 The first version is focused on **small to medium local salons** with limited technical knowledge and little or no existing digital presence.
 
+### Final implementation baseline
+The implementation baseline is now fixed so the product concept and delivery plan stay aligned with the repository:
+- **Frontend:** Angular 21 SPA
+- **Styling:** Tailwind CSS
+- **UI library:** PrimeNG
+- **Backend:** Node.js + Express
+- **Database:** PostgreSQL
+- **ORM / query layer:** Drizzle
+- **Auth:** Firebase Auth for admin login only
+- **Containers:** Docker from week 1
+- **Repo shape:** pnpm monorepo
+
 ---
 
 ## 2. Core Idea
 
-The application is designed as a **single-page app (SPA)** with two main views:
+The application is designed as an **Angular 21 single-page app (SPA)** with two main views:
 
 ### Customer View
 The public-facing booking flow for salon customers.
@@ -44,6 +58,8 @@ This keeps the product easy to understand:
 - **Customers book**
 - **Salon staff manage**
 
+The frontend should use **PrimeNG** for core UI building blocks and **Tailwind CSS** for layout, spacing, and branding customization so the UI can stay fast to iterate on without becoming visually inconsistent.
+
 ---
 
 ## 3. Why the Onepager Approach Fits
@@ -58,6 +74,13 @@ Benefits:
 - Easier onboarding for non-technical users
 
 The SPA structure also supports future modular growth without changing the core user experience.
+
+The delivery setup should also stay simple from the start:
+- one Angular frontend app in the monorepo
+- one Node.js + Express backend app in the monorepo
+- shared packages for reusable code where needed
+- PostgreSQL as the single relational source of truth
+- Docker-based local infrastructure from the first week
 
 ---
 
@@ -96,11 +119,14 @@ A typical customer journey:
 4. System shows bookable time slots only
 5. Already booked slots are hidden or marked unavailable
 6. Customer enters name, phone, and optionally email
-7. Customer confirms booking
-8. Customer gets a confirmation message
-9. Admin sees the appointment immediately in the dashboard
+7. If enabled by the salon, customer verifies the booking with an SMS code
+8. Customer confirms booking
+9. Customer gets a confirmation message
+10. Admin sees the appointment immediately in the dashboard
 
 This is the most important user flow and should be frictionless.
+
+Phone verification should be treated as an **optional anti-abuse feature**, not a mandatory account system for every customer.
 
 ---
 
@@ -167,7 +193,7 @@ To avoid overbuilding, the MVP should focus on:
 - booking confirmation
 
 ### Admin side
-- secure login
+- secure admin login with Firebase Auth
 - appointment overview
 - appointment detail page
 - add/edit/cancel appointment
@@ -178,6 +204,9 @@ To avoid overbuilding, the MVP should focus on:
 - notifications by email first
 - audit-friendly status tracking
 - multi-tenant separation between salons
+- tenant onboarding and provisioning for each new salon
+- basic anti-abuse protection for public bookings
+- backend-enforced admin authorization through internal tenant-aware admin records
 
 Not included in MVP:
 - advanced staff scheduling
@@ -207,6 +236,22 @@ Example:
 - `app.yourbrand.ch/salon-xyz`
 
 Later, a custom domain or branded landing page can be added.
+
+### Recommended commercial model
+The default commercial model should be a **shared hosted platform**, not a separate installation for each salon.
+
+In practice this means:
+- one shared Angular frontend, Express backend, and PostgreSQL platform operated by you
+- each salon isolated as its own tenant with strict tenant scoping
+- each salon onboarded through provisioning, not local installation
+- a separate dedicated deployment only offered later as a premium option if a larger customer requires it
+
+For a normal salon customer, "setting up production" should mean:
+- create the salon tenant
+- create the admin user
+- configure services, opening hours, and branding
+- provide the booking URL and admin access
+- optionally connect a custom domain
 
 ---
 
@@ -244,6 +289,7 @@ Possible future modules:
 - review requests after appointments
 - no-show tracking
 - simple reporting
+- configurable anti-abuse rules per salon
 
 The architecture should treat these as optional modules that can be added per tenant or per pricing plan.
 
@@ -258,12 +304,23 @@ To keep the product practical:
 - Keep booking steps short
 - Show only available slots
 - Make confirmation immediate and clear
+- Use phone verification only when risk justifies the extra friction
 
 ### For admins
 - Default to today's appointments
 - Use a very simple dashboard
 - Keep forms minimal
 - Allow manual override when needed
+
+### For implementation
+- Keep the stack opinionated and stable: Angular 21, PrimeNG, Tailwind, Express, PostgreSQL, Drizzle, Firebase Auth
+- Use the monorepo as the source of truth for frontend, backend, and shared code
+- Containerize local infrastructure early so development and deployment assumptions stay close
+
+### For platform operations
+- Treat country restrictions as a risk signal, not the main fraud defense
+- Prefer rate limiting, CAPTCHA, blocked-number lists, and optional SMS verification over hard geo-blocking
+- Let each salon enable stricter booking protection if needed
 
 This is important because salon software often fails by becoming too heavy.
 

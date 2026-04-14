@@ -28,9 +28,9 @@ The platform can be structured into five main layers:
 ```text
 Customer Browser / Admin Browser
         ↓
-Angular SPA
+Angular 21 SPA
         ↓
-API Gateway / Backend Application
+Node.js + Express API
         ↓
 Application Services + Booking Logic
         ↓
@@ -39,16 +39,32 @@ PostgreSQL Database
 Optional Notification / Email Services
 ```
 
+### Repository shape
+
+The implementation is organized as a **pnpm monorepo**:
+
+```text
+apps/
+  frontend/   Angular 21 SPA
+  backend/    Node.js + Express API
+packages/
+  shared/     shared types, helpers, or contracts as needed
+infra/
+  docker/     container-related assets
+docker-compose.yml
+```
+
 ---
 
 ## 3. Frontend Architecture
 
 ## 3.1 Technology Choice
 Recommended:
-- **Angular** for the SPA
+- **Angular 21** for the SPA
 - Angular Router for route separation
 - Angular state management kept simple at first
-- Angular Material or a lightweight component library if needed
+- **PrimeNG** for form, table, overlay, and admin UI components
+- **Tailwind CSS** for layout, spacing, responsive utilities, and branding
 
 The frontend should expose separate route groups for public and admin usage.
 
@@ -101,6 +117,7 @@ Reusable building blocks:
 - buttons
 - dialogs
 - tables
+- PrimeNG form controls and feedback components
 - date formatting
 - validation messages
 - API error banners
@@ -128,43 +145,28 @@ If complexity grows later, NgRx or another state layer can be introduced.
 
 ## 4. Backend Architecture
 
-You mentioned Express and Java. There are two viable options.
+The backend is fixed as **Node.js + Express**.
 
-## Option A — Simpler MVP
-Use **Node.js + Express** for the backend API.
+Recommended implementation characteristics:
+- Express handles the HTTP API and middleware pipeline
+- feature modules keep tenant, booking, service, and availability logic separated
+- **Drizzle** is the query layer and schema definition source for PostgreSQL
+- backend validation and transaction boundaries remain authoritative for booking correctness
 
-Advantages:
-- faster MVP development
-- simpler deployment
-- good fit for SPA backend and REST endpoints
-
-## Option B — Stronger Domain Core
-Use **Java (Spring Boot)** for the core API.
-
-Advantages:
-- excellent structure for domain logic
-- strong validation and transactional workflows
-- good long-term fit if the product becomes larger
-
-## Recommended practical path
-- Start with **one backend only**, not both
-- If speed matters most: choose **Express**
-- If long-term platform structure matters most: choose **Spring Boot**
-
-Do not split business logic across two backends in the first version.
+This keeps the MVP fast to build while preserving a clean path for future modular growth.
 
 ---
 
 ## 5. Backend Modules
 
-Regardless of implementation choice, structure the backend by domain modules.
+Structure the backend by domain modules.
 
 ### 5.1 Auth Module
 Responsibilities:
 - admin login
-- JWT/session issuance
-- password hashing
+- token verification and session handling
 - access checks for admin endpoints
+- mapping authenticated users to internal tenant-aware admin records
 
 Entities:
 - AdminUser
@@ -224,6 +226,18 @@ Integrations:
 - SMTP/email provider first
 - SMS provider later if business case proves out
 
+### 5.7 Booking Protection Module
+Responsibilities:
+- rate limiting and abuse detection for public booking endpoints
+- optional guest phone verification by SMS
+- blocked phone list handling
+- risk-based booking controls per salon
+
+Entities:
+- BookingVerification
+- BlockedPhoneNumber
+- BookingRiskEvent
+
 ---
 
 ## 6. Core Booking Logic
@@ -274,6 +288,8 @@ A REST API is the simplest fit for MVP.
 GET    /api/public/salons/:slug
 GET    /api/public/salons/:slug/services
 GET    /api/public/salons/:slug/availability?date=YYYY-MM-DD&serviceId=...
+POST   /api/public/salons/:slug/booking-verifications
+POST   /api/public/salons/:slug/booking-verifications/:id/confirm
 POST   /api/public/salons/:slug/bookings
 ```
 
@@ -281,6 +297,8 @@ Purpose:
 - fetch public salon info
 - fetch bookable services
 - fetch available slots
+- start an optional SMS verification flow
+- confirm the verification code and finalize the booking
 - create a booking
 
 ---
@@ -288,7 +306,6 @@ Purpose:
 ## 7.2 Admin Endpoints
 
 ```text
-POST   /api/admin/auth/login
 GET    /api/admin/me
 
 GET    /api/admin/appointments
@@ -309,7 +326,7 @@ POST   /api/admin/availability/blocked-ranges
 ```
 
 Purpose:
-- authenticate admins
+- resolve the authenticated Firebase admin to the internal admin record
 - manage appointments
 - manage services
 - manage availability settings
@@ -339,8 +356,8 @@ Recommended:
 #### admin_users
 - id
 - salon_id
+- firebase_uid
 - email
-- password_hash
 - role
 - active
 - created_at
@@ -353,6 +370,7 @@ Recommended:
 - last_name
 - phone
 - email
+- phone_verified_at
 - notes
 - created_at
 - updated_at
@@ -407,6 +425,34 @@ Recommended:
 - reason
 - created_by
 
+#### booking_verifications
+- id
+- salon_id
+- phone_e164
+- booking_payload_json
+- code_hash
+- expires_at
+- attempt_count
+- verified_at
+- status
+- created_at
+
+#### blocked_phone_numbers
+- id
+- salon_id
+- phone_e164
+- reason
+- created_at
+
+#### booking_risk_events
+- id
+- salon_id
+- phone_e164
+- ip_country_code
+- risk_level
+- reason
+- created_at
+
 ---
 
 ## 9. Tenant Isolation
@@ -435,20 +481,52 @@ For MVP, shared schema with strict tenant filtering is enough.
 ## 10. Authentication and Security
 
 ### Admin Authentication
-Use:
-- email + password
-- hashed passwords with bcrypt/argon2
-- JWT access token or secure cookie session
+Recommended MVP approach:
+- Firebase Auth for admin identity
+- email + password for salon admins
+- Firebase login handled in the Angular admin app
+- Firebase ID token sent from SPA to backend
+- backend verification with Firebase Admin SDK
+- internal `admin_users` record mapped by `firebase_uid` and `salon_id`
+
+Important rule:
+Firebase should handle **identity**, but the backend and database must still enforce **tenant authorization**.
+The authenticated admin is not trusted until the backend resolves the matching internal admin record and tenant context.
 
 ### Customer Side
 No login required for MVP.
 Customers book as guests.
 
-### Security Controls
+### Optional Guest Phone Verification
+Phone verification can be offered as a configurable anti-abuse feature.
+
+Recommended flow:
+1. Customer selects service, date, and slot
+2. Customer submits booking details and phone number
+3. Backend creates a short-lived verification session
+4. System sends an SMS code
+5. Customer enters the code
+6. Backend verifies the code and re-checks slot availability before saving the appointment
+
+This should not be treated as full customer authentication. It is only a proof that the guest controls the submitted phone number.
+
+### Booking Abuse Prevention
+Use layered controls on public booking endpoints:
 - input validation on all endpoints
-- rate limiting on public booking endpoints
+- rate limiting per IP, phone number, and salon
+- CAPTCHA or bot protection on suspicious traffic
+- duplicate booking detection
+- blocked phone number lists per salon
+- audit logging for admin actions and booking risk events
+
+Country restrictions should be handled carefully:
+- do not rely on IP-based country blocking as the main defense
+- treat IP country as a risk signal, not a final decision
+- optionally restrict accepted phone country codes per salon
+- require stronger checks such as SMS verification for higher-risk bookings
+
+### Security Controls
 - CSRF protection if cookie-based sessions are used
-- audit logging for admin actions
 - HTTPS only
 - secure secret management in deployment
 
@@ -461,6 +539,8 @@ For the first version, notifications should be simple.
 ### Recommended MVP
 - customer confirmation email
 - optional admin notification email
+
+SMS should be introduced only when needed for guest verification or later reminder flows.
 
 ### Later
 - reminder emails
@@ -477,8 +557,8 @@ The notification module should be asynchronous where possible, but for MVP a sim
 ## 12.1 Hosting
 A clean deployment setup could be:
 
-- Frontend: static hosting or CDN-backed app hosting
-- Backend: containerized service
+- Frontend: Angular static build served from static hosting or CDN-backed app hosting
+- Backend: containerized Express service
 - Database: managed PostgreSQL
 - Email: SMTP provider or transactional mail service
 
@@ -489,6 +569,16 @@ Possible stack:
 
 Since you also know infrastructure, you can later migrate to AWS/GCP if needed.
 
+### 12.1.1 Commercial Hosting Model
+Recommended default:
+- one shared production platform operated by you
+- one frontend deployment
+- one backend deployment
+- one PostgreSQL cluster with strict tenant scoping
+- separate dedicated deployments only for premium or exceptional customers
+
+For small salons, production setup should usually mean tenant provisioning on the shared platform, not software installation on customer infrastructure.
+
 ---
 
 ## 12.2 Deployment Strategy
@@ -496,6 +586,7 @@ Use containers from day one.
 
 Recommended:
 - Docker for frontend and backend packaging
+- `docker-compose.yml` for local PostgreSQL and local environment parity
 - CI/CD pipeline with test + build + deploy
 - separate environments:
   - local
@@ -504,10 +595,21 @@ Recommended:
 
 Environment variables:
 - DB connection
-- JWT secret
+- Firebase project settings and service account credentials if Firebase Auth is used
 - email credentials
+- SMS provider credentials if phone verification is enabled
 - base URLs
 - feature flags
+
+### 12.3 Tenant Provisioning and Onboarding
+For each new salon, the production onboarding flow should include:
+- create the salon record and slug
+- create the Firebase admin user
+- create the internal admin record linked by `firebase_uid`
+- configure timezone, branding, services, and opening hours
+- configure booking protection defaults for that salon
+- provide the booking URL and admin access
+- optionally configure a custom domain
 
 ---
 
@@ -533,6 +635,9 @@ Track:
 - availability calculation errors
 - auth failures
 - email delivery failures
+- SMS delivery failures
+- booking verification failures
+- suspicious booking activity by tenant
 
 ---
 
@@ -551,6 +656,7 @@ Track:
    ├─ Booking Module
    ├─ Service Module
    ├─ Availability Module
+        ├─ Booking Protection Module
    └─ Notification Module
             │
             ▼
@@ -562,11 +668,15 @@ Track:
    ├─ appointments
    ├─ weekly_opening_hours
    ├─ availability_exceptions
-   └─ blocked_time_ranges
+        ├─ blocked_time_ranges
+        ├─ booking_verifications
+        ├─ blocked_phone_numbers
+        └─ booking_risk_events
             │
             ▼
 [ External Services ]
    ├─ Email Provider
+        ├─ SMS Provider
    ├─ Monitoring
    └─ Hosting / CDN / DNS
 ```
@@ -582,10 +692,12 @@ To reduce risk, build in this order:
 3. opening hours and blocked times
 4. public availability calculation
 5. booking creation
-6. admin appointment overview
-7. edit/cancel flows
-8. email notifications
-9. polish and mobile UX
+6. basic anti-abuse controls for public bookings
+7. admin appointment overview
+8. edit/cancel flows
+9. email notifications
+10. optional SMS verification for higher-risk salons
+11. polish and mobile UX
 
 This build order ensures the most important business flow works early.
 
@@ -596,11 +708,13 @@ This build order ensures the most important business flow works early.
 The system should be built as a **multi-tenant modular SPA** backed by a single API and relational database.
 
 Core technical ideas:
-- Angular frontend with customer and admin route areas
-- one backend application with domain modules
+- Angular 21 frontend with PrimeNG and Tailwind CSS
+- one Node.js + Express backend application with domain modules
+- Drizzle as the PostgreSQL schema and query layer
 - PostgreSQL as the source of truth
 - backend-driven slot validation to prevent double bookings
 - tenant-aware design from the start
+- pnpm monorepo structure so frontend, backend, and shared code evolve together
 - modular structure so more features can be added later
 
 This gives you a practical foundation for an MVP that is fast to build, easy to host, and capable of growing into a reusable SaaS platform for local salons.
