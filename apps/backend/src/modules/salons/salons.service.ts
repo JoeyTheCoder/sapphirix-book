@@ -21,7 +21,7 @@ export async function getSalonBySlug(slug: string) {
       countryCode: salons.countryCode,
     })
     .from(salons)
-    .where(eq(salons.slug, slug))
+    .where(and(eq(salons.slug, slug), eq(salons.active, true)))
     .limit(1);
 
   return salon ?? null;

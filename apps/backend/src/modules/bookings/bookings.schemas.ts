@@ -1,26 +1,33 @@
 import { z } from 'zod';
 
+const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/;
+
 const optionalText = z.preprocess(
   (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
   z.string().trim().min(1).optional(),
 );
 
-const optionalEmail = z.preprocess(
-  (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
-  z.email().optional(),
-);
+const requiredText = z.string().trim().min(1);
+
+const requiredEmail = z.email();
+
+export const availabilityQuerySchema = z.object({
+  serviceId: z.uuid(),
+  date: z.string().regex(isoDatePattern, 'Expected YYYY-MM-DD'),
+});
 
 export const createBookingSchema = z.object({
   salonSlug: z.string().trim().min(1),
   serviceId: z.uuid(),
   startsAt: z.string().datetime({ offset: true }),
   customer: z.object({
-    firstName: z.string().trim().min(1),
-    lastName: z.string().trim().min(1),
-    email: optionalEmail,
-    phone: optionalText,
+    firstName: requiredText,
+    lastName: requiredText,
+    email: requiredEmail,
+    phone: requiredText,
   }),
   customerNotes: optionalText,
 });
 
+export type AvailabilityQueryInput = z.infer<typeof availabilityQuerySchema>;
 export type CreateBookingInput = z.infer<typeof createBookingSchema>;

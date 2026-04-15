@@ -15,6 +15,13 @@
       "when": 1776206037725,
       "tag": "0001_complex_khan",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776290923174,
+      "tag": "0002_curious_onslaught",
+      "breakpoints": true
     }
   ]
 }

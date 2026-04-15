@@ -12,6 +12,7 @@ export type SalonProfile = {
   postalCode: string | null;
   city: string | null;
   countryCode: string;
+  bookingBufferMinutes: number;
   updatedAt: string;
 };
 
@@ -43,6 +44,24 @@ export type TimeOffBlock = {
   createdAt: string;
 };
 
+export type AdminBookingItem = {
+  id: string;
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  startsAt: string;
+  endsAt: string;
+  priceAmount: number;
+  currency: string;
+  customer: {
+    firstName: string;
+    lastName: string;
+    email: string | null;
+    phone: string | null;
+  };
+  service: {
+    name: string;
+  };
+};
+
 export type SalonProfilePayload = {
   name: string;
   email?: string;
@@ -54,6 +73,7 @@ export type SalonProfilePayload = {
   postalCode?: string;
   city?: string;
   countryCode: string;
+  bookingBufferMinutes: number;
 };
 
 export type ServicePayload = {

@@ -412,21 +412,132 @@ Use this file as a shared working list: we can reorder stories, split them, or r
 - [ ] Create the appointment with a final backend availability check.
 - [ ] Show a clear booking confirmation screen.
 
+### Simple Implementation Notes
+
+- Public route: Add a public Angular route for one salon slug so each salon gets its own booking page.
+- Service selection: Load only that salon's active services and let the customer pick one.
+- Availability: Add a public backend endpoint that returns valid slots for a selected service and date.
+- Slot logic: The backend must calculate slots from opening hours, blocked times, and existing appointments.
+- Booking form: Keep the form short and guest-only, with no customer login.
+- Booking creation: Re-check the slot on the backend right before saving so double bookings are blocked.
+- Confirmation: After a successful booking, show a confirmation page with the main booking details.
+- Admin visibility: New bookings should appear immediately in the admin area once saved.
+
 ### Decisions To Make
 
-- [ ] Keep the public routes as `/s/:salonSlug/book` and `/s/:salonSlug/confirmation`?
-- [ ] Use a one-page flow or a step-by-step flow?
-- [ ] Require `name + phone`, with `email` optional?
-- [ ] Skip SMS verification for MVP, or make it optional per salon now?
-- [ ] Confirmation page only, or also send email/SMS right away?
-- [ ] What slot rules should apply: slot interval, minimum lead time, booking horizon, and buffer time?
+- [ ] Route structure: Keep `/s/:salonSlug/book` and `/s/:salonSlug/confirmation`, or use a single booking route only?
+- [ ] Flow style: One-page booking flow or step-by-step flow?
+- [ ] Required fields: `name + phone`, or `name + email`, or all three?
+- [ ] Email field: Optional in MVP or required?
+- [ ] SMS verification: Skip it for MVP, or support it as an optional per-salon anti-abuse setting now?
+- [ ] Slot interval: 15 min, 30 min, or another value?
+- [ ] Minimum lead time: Allow same-minute booking, 1 hour, 2 hours, or another rule?
+- [ ] Booking horizon: How far into the future can customers book?
+- [ ] Buffer time: No buffer, or add a gap between appointments?
+- [ ] Slot display: Hide unavailable slots or show them as disabled?
+- [ ] Booking status: Should new bookings start as `confirmed` or `pending`?
+- [ ] Confirmation: Page only, or also send email and/or SMS right away?
+- [ ] Scope: One service per booking for MVP, or support multiple services in one booking?
+
+### Decisions
+
+- i want it to stay on a single route while booking
+- onepage
+- all three
+- required
+- required
+- single slot time for now 30 mins only
+- 30 min lead time
+- will recheck with customer, let's do 4 weeks for now
+- 10 mins buffer for now, make this a setting in admin page to set
+- show them as disabled
+- i would say pending and we give feedback once it's been confirmed by the admin
+- for now page only will do email or sms later
+- one service per booking in MVP
+
+### How To Validate
+
+- Before testing, run `pnpm --filter backend db:migrate` so PostgreSQL gets the new `pending` booking status and the new `booking_buffer_minutes` salon setting.
+- Start backend and frontend and make sure both apps boot without errors.
+- Open a real public salon URL like `/s/<salonSlug>/book` and confirm the correct salon data and services load.
+- Pick a service and a date and confirm only valid slots are shown.
+- Create one booking and confirm the success page shows the right summary.
+- Refresh the admin area and confirm the booking appears for the correct salon.
+- Try booking the same slot twice and confirm the second request is rejected.
+- Add blocked time or change opening hours and confirm slot results change correctly.
+- Change the booking buffer in admin, save it, and confirm slot results update after reload.
+- Try invalid input or missing fields and confirm the form and API return clear errors.
+- Try another salon slug and confirm salon data and bookings stay isolated.
+
+### Done Means
+
+- A customer can finish a booking without admin help.
+- The backend is the final source of truth for slot validity.
+- Double bookings are blocked on the backend.
+- The confirmation screen works.
+- New bookings are visible in the admin area.
+- Cross-salon access stays blocked.
 
 ## Phase 6 - Admin Booking Management
 
-- [ ] As an admin, I want to see upcoming bookings so I can manage the day.
-- [ ] As an admin, I want to filter bookings by date so I can find appointments quickly.
-- [ ] As an admin, I want to update or cancel bookings so I can handle schedule changes.
-- [ ] As an admin, I want to view customer contact details so I can follow up when needed.
+- [ ] Show today and upcoming bookings in the admin area.
+- [ ] Add basic filters so admins can find bookings quickly.
+- [ ] Add a booking detail view with customer and service data.
+- [ ] Let admins confirm, cancel, or update a booking.
+- [ ] Let admins create a manual booking for walk-ins or phone calls.
+
+### Simple Implementation Notes
+
+- Booking list: Add an admin bookings page or section that shows today's and upcoming bookings first.
+- Filters: Start simple with date and status filters, then add service if needed.
+- Detail view: Show booking time, service, status, customer details, and notes in one place.
+- Status actions: Allow admins to confirm pending bookings and cancel bookings cleanly.
+- Editing: Let admins change the selected time and service with backend validation.
+- Manual booking: Reuse the booking rules from the public flow so manual bookings follow the same availability logic.
+- Tenant safety: All booking reads and updates must stay scoped to the logged-in salon.
+
+### Decisions To Make
+
+- [ ] UI shape: Keep this inside the current admin shell, or add a separate `/admin/bookings` page?
+- [ ] Default view: Show only today first, or today plus upcoming bookings together?
+- [ ] Filters: Date + status only, or date + status + service in MVP?
+- [ ] Detail view: Inline expand, side drawer, or separate page?
+- [ ] Status flow: Can admins move `pending -> confirmed -> completed`, and cancel from both `pending` and `confirmed`?
+- [ ] Editing scope: Allow full reschedule in Phase 6, or only confirm/cancel first?
+- [ ] Manual booking: Include manual create in Phase 6 MVP, or postpone it?
+- [ ] Customer editing: Can admins edit customer contact details from the booking view?
+- [ ] Calendar style: Simple list first, or do you want a calendar grid already in Phase 6?
+
+### Decisions
+
+- UI shape:
+- Default view:
+- Filters:
+- Detail view:
+- Status flow:
+- Editing scope:
+- Manual booking:
+- Customer editing:
+- Calendar style:
+
+### How To Validate
+
+- Log in as an admin and confirm bookings for only that salon are shown.
+- Confirm a pending booking and verify the new status appears after refresh.
+- Cancel a booking and verify it no longer blocks that slot.
+- Change the booking date or time and verify overlap checks still work.
+- Filter by date and status and confirm the list updates correctly.
+- Open booking details and confirm customer contact data and service data are correct.
+- Create one manual booking, if included, and confirm it appears in the list and blocks the slot.
+- Try to access or modify another salon's booking and confirm tenant isolation is still enforced.
+
+### Done Means
+
+- Admins can see and find their bookings quickly.
+- Admins can open a booking and understand its current state.
+- Admins can confirm, cancel, and update bookings within the agreed scope.
+- Manual bookings work too, if included in the phase scope.
+- Booking changes stay tenant-safe and keep availability accurate.
 
 ## Phase 7 - Protection And Quality
 

@@ -11,7 +11,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
-export const bookingStatusEnum = pgEnum('booking_status', ['confirmed', 'cancelled', 'completed']);
+export const bookingStatusEnum = pgEnum('booking_status', ['pending', 'confirmed', 'cancelled', 'completed']);
 
 export const salons = pgTable(
   'salons',
@@ -29,6 +29,7 @@ export const salons = pgTable(
     postalCode: text('postal_code'),
     city: text('city'),
     countryCode: text('country_code').notNull().default('CH'),
+    bookingBufferMinutes: integer('booking_buffer_minutes').notNull().default(10),
     active: boolean('active').notNull().default(true),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
@@ -108,7 +109,7 @@ export const bookings = pgTable(
     serviceId: uuid('service_id')
       .notNull()
       .references(() => services.id, { onDelete: 'restrict' }),
-    status: bookingStatusEnum('status').notNull().default('confirmed'),
+    status: bookingStatusEnum('status').notNull().default('pending'),
     startsAt: timestamp('starts_at', { withTimezone: true, mode: 'date' }).notNull(),
     endsAt: timestamp('ends_at', { withTimezone: true, mode: 'date' }).notNull(),
     priceAmount: integer('price_amount').notNull(),

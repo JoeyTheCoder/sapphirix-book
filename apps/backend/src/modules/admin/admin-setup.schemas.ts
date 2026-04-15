@@ -43,6 +43,7 @@ export const updateSalonProfileSchema = z.object({
   postalCode: optionalTrimmedText,
   city: optionalTrimmedText,
   countryCode: z.string().trim().length(2).transform((value) => value.toUpperCase()),
+  bookingBufferMinutes: z.number().int().min(0).max(120).default(10),
 });
 
 export const createServiceSchema = z.object({

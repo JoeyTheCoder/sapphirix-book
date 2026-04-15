@@ -3,12 +3,17 @@ import { Routes } from '@angular/router';
 import { adminAuthGuard } from './core/admin-auth.guard';
 import { AdminLoginPage } from './pages/admin-login.page';
 import { AdminShellPage } from './pages/admin-shell.page';
+import { PublicBookingPage } from './pages/public-booking.page';
 
 export const routes: Routes = [
 	{
 		path: '',
 		pathMatch: 'full',
 		redirectTo: 'admin/login',
+	},
+	{
+		path: 's/:salonSlug/book',
+		component: PublicBookingPage,
 	},
 	{
 		path: 'admin/login',

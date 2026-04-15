@@ -2,8 +2,8 @@ import { Router } from 'express';
 
 import { HttpError } from '../errors/http-error.js';
 import { validateBody } from '../middleware/validate-body.js';
-import { createBookingSchema } from '../modules/bookings/bookings.schemas.js';
-import { createBooking } from '../modules/bookings/bookings.service.js';
+import { availabilityQuerySchema, createBookingSchema } from '../modules/bookings/bookings.schemas.js';
+import { createBooking, getAvailability } from '../modules/bookings/bookings.service.js';
 import { getSalonBySlug, listServicesBySalonSlug } from '../modules/salons/salons.service.js';
 
 export function createPublicRouter(): Router {
@@ -32,6 +32,25 @@ export function createPublicRouter(): Router {
       }
 
       res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get('/salons/:slug/availability', async (req, res, next) => {
+    try {
+      const queryResult = availabilityQuerySchema.safeParse(req.query);
+
+      if (!queryResult.success) {
+        throw new HttpError(400, 'Invalid availability query', queryResult.error.flatten());
+      }
+
+      const availability = await getAvailability({
+        salonSlug: req.params.slug,
+        ...queryResult.data,
+      });
+
+      res.json({ availability });
     } catch (error) {
       next(error);
     }

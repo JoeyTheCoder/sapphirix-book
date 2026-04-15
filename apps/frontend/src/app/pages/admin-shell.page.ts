@@ -4,7 +4,7 @@ import { NgFor, NgIf } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
 
 import { AdminSetupApiService } from '../core/admin-setup-api.service';
-import type { OpeningHourSlot, SalonProfile, ServiceItem, TimeOffBlock } from '../core/admin-setup.types';
+import type { AdminBookingItem, OpeningHourSlot, SalonProfile, ServiceItem, TimeOffBlock } from '../core/admin-setup.types';
 import { AuthService } from '../core/auth.service';
 
 type SalonFormState = {
@@ -18,6 +18,7 @@ type SalonFormState = {
   postalCode: string;
   city: string;
   countryCode: string;
+  bookingBufferMinutes: number;
 };
 
 type ServiceFormState = {
@@ -58,6 +59,7 @@ function createEmptySalonForm(): SalonFormState {
     postalCode: '',
     city: '',
     countryCode: 'CH',
+    bookingBufferMinutes: 10,
   };
 }
 
@@ -228,6 +230,12 @@ function formatMoney(amount: number, currency: string): string {
                     class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-all focus:border-violet-500 focus:bg-white focus:ring-3 focus:ring-violet-500/15" />
                 </div>
 
+                <div>
+                  <label class="mb-1.5 block text-sm font-medium text-gray-700">Booking buffer (min)</label>
+                  <input [(ngModel)]="salonForm.bookingBufferMinutes" name="bookingBufferMinutes" type="number" min="0" max="120" step="5"
+                    class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-900 outline-none transition-all focus:border-violet-500 focus:bg-white focus:ring-3 focus:ring-violet-500/15" />
+                </div>
+
                 <div class="sm:col-span-2">
                   <label class="mb-1.5 block text-sm font-medium text-gray-700">Address line 1</label>
                   <input [(ngModel)]="salonForm.addressLine1" name="addressLine1"
@@ -299,6 +307,57 @@ function formatMoney(amount: number, currency: string): string {
                 <i class="pi pi-spin pi-spinner"></i> Uploadingâ€¦
               </p>
             </div>
+          </div>
+        </div>
+
+        <!-- Upcoming bookings -->
+        <div class="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-900/5">
+          <div class="h-0.5 bg-gradient-to-r from-violet-500 to-fuchsia-500"></div>
+          <div class="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+            <div>
+              <h2 class="text-base font-semibold text-gray-900">Upcoming Bookings</h2>
+              <p class="mt-0.5 text-sm text-gray-500">New public booking requests appear here right away</p>
+            </div>
+            <span class="rounded-full bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700 ring-1 ring-violet-100">
+              {{ upcomingBookings().length }} entries
+            </span>
+          </div>
+
+          <div *ngIf="upcomingBookings().length > 0" class="divide-y divide-gray-100">
+            <article *ngFor="let booking of upcomingBookings()" class="flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                  <h3 class="truncate text-sm font-semibold text-gray-900">
+                    {{ booking.customer.firstName }} {{ booking.customer.lastName }}
+                  </h3>
+                  <span
+                    class="rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide"
+                    [class.bg-amber-100]="booking.status === 'pending'"
+                    [class.text-amber-700]="booking.status === 'pending'"
+                    [class.bg-emerald-100]="booking.status === 'confirmed'"
+                    [class.text-emerald-700]="booking.status === 'confirmed'"
+                    [class.bg-gray-100]="booking.status !== 'pending' && booking.status !== 'confirmed'"
+                    [class.text-gray-600]="booking.status !== 'pending' && booking.status !== 'confirmed'"
+                  >
+                    {{ booking.status }}
+                  </span>
+                </div>
+                <p class="mt-1 text-sm text-gray-500">{{ booking.service.name }}</p>
+                <p class="mt-1 text-xs text-gray-400">{{ booking.customer.email || 'No email' }} · {{ booking.customer.phone || 'No phone' }}</p>
+              </div>
+
+              <div class="shrink-0 text-left sm:text-right">
+                <p class="text-sm font-semibold text-gray-900">{{ formatDateTimeValue(booking.startsAt) }}</p>
+                <p class="mt-1 text-xs text-gray-400">{{ formatMoneyValue(booking.priceAmount, booking.currency) }}</p>
+              </div>
+            </article>
+          </div>
+
+          <div *ngIf="upcomingBookings().length === 0" class="px-6 py-10 text-center">
+            <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100 text-gray-400">
+              <i class="pi pi-calendar text-xl"></i>
+            </div>
+            <p class="text-sm text-gray-500">No upcoming bookings yet.</p>
           </div>
         </div>
 
@@ -527,6 +586,7 @@ export class AdminShellPage {
   readonly salon = signal<SalonProfile | null>(null);
   readonly services = signal<ServiceItem[]>([]);
   readonly timeOffBlocks = signal<TimeOffBlock[]>([]);
+  readonly upcomingBookings = signal<AdminBookingItem[]>([]);
 
   salonForm: SalonFormState = createEmptySalonForm();
   serviceForm: ServiceFormState = createEmptyServiceForm();
@@ -548,16 +608,18 @@ export class AdminShellPage {
         await this.authService.fetchAdminProfile();
       }
 
-      const [salon, services, openingHours, timeOffBlocks] = await Promise.all([
+      const [salon, services, openingHours, timeOffBlocks, upcomingBookings] = await Promise.all([
         this.adminSetupApi.getSalon(),
         this.adminSetupApi.listServices(),
         this.adminSetupApi.getOpeningHours(),
         this.adminSetupApi.listTimeOffBlocks(),
+        this.adminSetupApi.listUpcomingBookings(),
       ]);
 
       this.salon.set(salon);
       this.services.set(services);
       this.timeOffBlocks.set(timeOffBlocks);
+      this.upcomingBookings.set(upcomingBookings);
       this.applySalonForm(salon);
       this.applyOpeningHours(openingHours);
       this.statusMessage.set(null);
@@ -599,6 +661,7 @@ export class AdminShellPage {
         postalCode: this.optionalValue(this.salonForm.postalCode),
         city: this.optionalValue(this.salonForm.city),
         countryCode: this.salonForm.countryCode.trim().toUpperCase(),
+        bookingBufferMinutes: Number(this.salonForm.bookingBufferMinutes),
       });
 
       this.salon.set(salon);
@@ -831,6 +894,7 @@ export class AdminShellPage {
       postalCode: salon.postalCode ?? '',
       city: salon.city ?? '',
       countryCode: salon.countryCode,
+      bookingBufferMinutes: salon.bookingBufferMinutes,
     };
   }
 

@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 
 import { firebaseAuth } from './firebase-client';
 import type {
+  AdminBookingItem,
   OpeningHourSlot,
   ReplaceOpeningHoursPayload,
   SalonProfile,
@@ -122,5 +123,13 @@ export class AdminSetupApiService {
   async deleteTimeOffBlock(blockId: string): Promise<void> {
     const headers = await this.createAuthHeaders();
     await firstValueFrom(this.http.delete(`${adminApiBaseUrl}/time-off-blocks/${blockId}`, { headers }));
+  }
+
+  async listUpcomingBookings(): Promise<AdminBookingItem[]> {
+    const headers = await this.createAuthHeaders();
+    const response = await firstValueFrom(
+      this.http.get<{ bookings: AdminBookingItem[] }>(`${adminApiBaseUrl}/bookings/upcoming`, { headers }),
+    );
+    return response.bookings;
   }
 }

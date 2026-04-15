@@ -24,6 +24,7 @@ const salonProfileSelection = {
   postalCode: salons.postalCode,
   city: salons.city,
   countryCode: salons.countryCode,
+  bookingBufferMinutes: salons.bookingBufferMinutes,
   updatedAt: salons.updatedAt,
 } as const;
 
@@ -67,6 +68,7 @@ export async function updateSalonProfile(salonId: string, input: UpdateSalonProf
       postalCode: input.postalCode ?? null,
       city: input.city ?? null,
       countryCode: input.countryCode,
+      bookingBufferMinutes: input.bookingBufferMinutes,
       updatedAt: new Date(),
     })
     .where(eq(salons.id, salonId))

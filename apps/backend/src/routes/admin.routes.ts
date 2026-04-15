@@ -23,6 +23,7 @@ import {
   updateSalonProfile,
   updateService,
 } from '../modules/admin/admin-setup.service.js';
+import { listUpcomingBookingsForSalon } from '../modules/bookings/bookings.service.js';
 import { salonLogoUpload, toSalonLogoPublicPath } from '../uploads/storage.js';
 
 function readRouteParam(value: string | string[] | undefined, fieldName: string): string {
@@ -165,6 +166,15 @@ export function createAdminRouter(): Router {
       const blockId = readRouteParam(req.params.blockId, 'blockId');
       await deleteTimeOffBlock(res.locals.adminContext.salon.id, blockId);
       res.status(204).send();
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get('/bookings/upcoming', async (_req, res, next) => {
+    try {
+      const bookings = await listUpcomingBookingsForSalon(res.locals.adminContext.salon.id);
+      res.json({ bookings });
     } catch (error) {
       next(error);
     }
