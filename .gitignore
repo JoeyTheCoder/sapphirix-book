@@ -16,6 +16,9 @@ coverage/
 !.env.example
 !.env.*.example
 
+# Runtime uploads
+apps/backend/uploads/
+
 # Logs
 *.log
 npm-debug.log*
