@@ -52,12 +52,12 @@ docker compose up -d
 
 This starts a local PostgreSQL 17 instance on `localhost:5432`.
 
-### 3. Check backend env
+### 3. Create the root env file
 
 File:
 
 ```text
-apps/backend/.env
+.env
 ```
 
 Current local baseline:
@@ -65,7 +65,11 @@ Current local baseline:
 ```env
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/sapphirix_booking
 PORT=3000
+PUBLIC_API_BASE_URL=http://localhost:3000/api/v1
+PUBLIC_ASSET_BASE_URL=http://localhost:3000
 ```
+
+Copy `.env.example` to `.env` at the repository root and fill in the Firebase backend and frontend values there.
 
 ### 4. Run the apps
 
@@ -79,6 +83,8 @@ Default local endpoints:
 - Backend: `http://localhost:3000`
 - Health check: `http://localhost:3000/health`
 
+The frontend syncs its config from the root `.env` automatically before `pnpm dev:frontend` and `pnpm build`.
+
 ---
 
 ## Scripts
@@ -86,11 +92,32 @@ Default local endpoints:
 From the repository root:
 
 ```bash
+pnpm env:sync
+pnpm db:dump
+pnpm db:restore -- ./.backups/your-dump.sql
 pnpm dev
 pnpm dev:frontend
 pnpm dev:backend
 pnpm build
 ```
+
+---
+
+## Dev Data Sync
+
+For local machine-to-machine syncing, treat schema and data separately:
+
+- Schema stays in Git through Drizzle migrations.
+- Local dev data moves through SQL dumps, not through the Docker volume.
+
+Recommended flow:
+
+1. On the source machine, run `pnpm db:dump`.
+2. Copy the generated `.backups/*.sql` file to your other machine using private storage.
+3. On the target machine, start PostgreSQL and run `pnpm db:restore -- path/to/dump.sql`.
+4. Run `pnpm --filter backend db:migrate` afterward if the target repo revision is newer.
+
+This is the pragmatic way to keep salon/admin/service/test-booking data aligned across devices while keeping `.env` and Docker volumes local-only.
 
 ---
 

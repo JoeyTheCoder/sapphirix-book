@@ -14,8 +14,9 @@ import type {
   TimeOffBlock,
   TimeOffBlockPayload,
 } from './admin-setup.types';
+import { frontendEnv } from './frontend-env';
 
-const adminApiBaseUrl = 'http://localhost:3000/api/v1/admin';
+const adminApiBaseUrl = `${frontendEnv.apiBaseUrl}/admin`;
 
 @Injectable({ providedIn: 'root' })
 export class AdminSetupApiService {

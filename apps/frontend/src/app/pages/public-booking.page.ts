@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 
 import { PublicBookingApiService } from '../core/public-booking-api.service';
+import { frontendEnv } from '../core/frontend-env';
 import type {
   AvailabilitySlot,
   BookingConfirmation,
@@ -373,7 +374,7 @@ export class PublicBookingPage {
       return null;
     }
 
-    return logoUrl.startsWith('http') ? logoUrl : `http://localhost:3000${logoUrl}`;
+    return logoUrl.startsWith('http') ? logoUrl : `${frontendEnv.assetBaseUrl}${logoUrl}`;
   }
 
   selectedService(): PublicService | null {

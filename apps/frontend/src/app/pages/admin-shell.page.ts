@@ -6,6 +6,7 @@ import { ButtonModule } from 'primeng/button';
 import { AdminSetupApiService } from '../core/admin-setup-api.service';
 import type { AdminBookingItem, OpeningHourSlot, SalonProfile, ServiceItem, TimeOffBlock } from '../core/admin-setup.types';
 import { AuthService } from '../core/auth.service';
+import { frontendEnv } from '../core/frontend-env';
 
 type SalonFormState = {
   name: string;
@@ -642,7 +643,7 @@ export class AdminShellPage {
       return null;
     }
 
-    return logoUrl.startsWith('http') ? logoUrl : `http://localhost:3000${logoUrl}`;
+    return logoUrl.startsWith('http') ? logoUrl : `${frontendEnv.assetBaseUrl}${logoUrl}`;
   }
 
   async saveSalonProfile(): Promise<void> {

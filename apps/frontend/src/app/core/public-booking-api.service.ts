@@ -9,8 +9,9 @@ import type {
   PublicSalon,
   PublicService,
 } from './public-booking.types';
+import { frontendEnv } from './frontend-env';
 
-const publicApiBaseUrl = 'http://localhost:3000/api/v1';
+const publicApiBaseUrl = frontendEnv.apiBaseUrl;
 
 @Injectable({ providedIn: 'root' })
 export class PublicBookingApiService {

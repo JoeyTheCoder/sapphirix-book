@@ -16,6 +16,9 @@ coverage/
 !.env.example
 !.env.*.example
 
+# Local database snapshots
+.backups/
+
 # Runtime uploads
 apps/backend/uploads/
 

@@ -7,6 +7,7 @@ import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } fr
 
 import type { AdminProfile } from './auth.types';
 import { ensureFirebaseBrowserPersistence, firebaseAuth } from './firebase-client';
+import { frontendEnv } from './frontend-env';
 import { isFirebasePublicConfigReady } from './firebase-public.config';
 
 @Injectable({ providedIn: 'root' })
@@ -92,7 +93,7 @@ export class AuthService {
 
     try {
       const profile = await firstValueFrom(
-        this.http.get<AdminProfile>('http://localhost:3000/api/v1/admin/me', {
+        this.http.get<AdminProfile>(`${frontendEnv.apiBaseUrl}/admin/me`, {
           headers: new HttpHeaders({
             Authorization: `Bearer ${idToken}`,
           }),
