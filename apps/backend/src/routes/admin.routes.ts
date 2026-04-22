@@ -10,6 +10,12 @@ import {
   updateSalonProfileSchema,
 } from '../modules/admin/admin-setup.schemas.js';
 import {
+  adminBookingsCalendarQuerySchema,
+  adminBookingsQuerySchema,
+  createAdminBookingSchema,
+  updateAdminBookingSchema,
+} from '../modules/bookings/admin-bookings.schemas.js';
+import {
   archiveService,
   createService,
   createTimeOffBlock,
@@ -23,7 +29,14 @@ import {
   updateSalonProfile,
   updateService,
 } from '../modules/admin/admin-setup.service.js';
-import { listUpcomingBookingsForSalon } from '../modules/bookings/bookings.service.js';
+import {
+  createAdminBookingForSalon,
+  getBookingDetailForSalon,
+  listBookingsForSalon,
+  listCalendarBookingsForSalon,
+  listUpcomingBookingsForSalon,
+  updateBookingForSalon,
+} from '../modules/bookings/bookings.service.js';
 import { salonLogoUpload, toSalonLogoPublicPath } from '../uploads/storage.js';
 
 function readRouteParam(value: string | string[] | undefined, fieldName: string): string {
@@ -32,6 +45,16 @@ function readRouteParam(value: string | string[] | undefined, fieldName: string)
   }
 
   return value;
+}
+
+function readQuery<T>(value: unknown, schema: { safeParse: (input: unknown) => { success: true; data: T } | { success: false; error: { flatten: () => unknown } } }) {
+  const result = schema.safeParse(value);
+
+  if (!result.success) {
+    throw new HttpError(400, 'Invalid query parameters', result.error.flatten());
+  }
+
+  return result.data;
 }
 
 export function createAdminRouter(): Router {
@@ -175,6 +198,55 @@ export function createAdminRouter(): Router {
     try {
       const bookings = await listUpcomingBookingsForSalon(res.locals.adminContext.salon.id);
       res.json({ bookings });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get('/bookings', async (req, res, next) => {
+    try {
+      const query = readQuery(req.query, adminBookingsQuerySchema);
+      const bookings = await listBookingsForSalon(res.locals.adminContext.salon.id, query);
+      res.json({ bookings });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get('/bookings/calendar', async (req, res, next) => {
+    try {
+      const query = readQuery(req.query, adminBookingsCalendarQuerySchema);
+      const calendar = await listCalendarBookingsForSalon(res.locals.adminContext.salon.id, query);
+      res.json(calendar);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get('/bookings/:bookingId', async (req, res, next) => {
+    try {
+      const bookingId = readRouteParam(req.params.bookingId, 'bookingId');
+      const booking = await getBookingDetailForSalon(res.locals.adminContext.salon.id, bookingId);
+      res.json({ booking });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post('/bookings', validateBody(createAdminBookingSchema), async (req, res, next) => {
+    try {
+      const booking = await createAdminBookingForSalon(res.locals.adminContext.salon.id, req.body);
+      res.status(201).json({ booking });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.patch('/bookings/:bookingId', validateBody(updateAdminBookingSchema), async (req, res, next) => {
+    try {
+      const bookingId = readRouteParam(req.params.bookingId, 'bookingId');
+      const booking = await updateBookingForSalon(res.locals.adminContext.salon.id, bookingId, req.body);
+      res.json({ booking });
     } catch (error) {
       next(error);
     }

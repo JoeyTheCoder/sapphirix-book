@@ -185,17 +185,19 @@ Goal:
 Build in this step:
 - slot calculation service
 - public availability endpoint
+- customer calendar preview with bookable-day hints
 - service-duration-aware slot generation
 - conflict filtering against blocked ranges and appointments
 
 Expected output:
 - frontend can request bookable slots for a date
+- frontend gives customers a quick visual preview of bookable days
 - backend is the source of truth for slot validity
 
 Prompt for Copilot:
 
 ```text
-We are on Step 5 of the MVP plan. Implement the availability calculation engine and public availability endpoint. The backend must be the final source of truth and must filter by tenant, opening hours, exceptions, blocked times, and existing appointments.
+We are on Step 5 of the MVP plan. Implement the availability calculation engine, public availability endpoint, and a lightweight customer calendar preview. The backend must be the final source of truth and must filter by tenant, opening hours, exceptions, blocked times, and existing appointments.
 ```
 
 ---
@@ -255,17 +257,21 @@ Goal:
 
 Build in this step:
 - appointment list for today and upcoming days
+- interactive admin calendar view
 - appointment detail view
 - edit, cancel, and manual-create flows
 - basic filters by date and status
+- phone-booking-optimized create flow
 
 Expected output:
 - salon staff can run the appointment workflow from the admin area
+- salon staff can schedule phone bookings directly from the calendar UI
+- salon staff can reschedule and confirm bookings without breaking availability rules
 
 Prompt for Copilot:
 
 ```text
-We are on Step 8 of the MVP plan. Implement the admin appointment workflow: list, detail view, edit, cancel, and manual appointment creation. Optimize for a simple salon workflow, not a generic enterprise dashboard.
+We are on Step 8 of the MVP plan. Implement the admin appointment workflow: list, interactive calendar, detail view, edit, cancel, and manual appointment creation. Optimize for a simple salon workflow, especially fast phone booking, day planning, and safe rescheduling, not a generic enterprise dashboard.
 ```
 
 ---

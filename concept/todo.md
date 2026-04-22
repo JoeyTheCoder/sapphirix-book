@@ -406,17 +406,19 @@ Use this file as a shared working list: we can reorder stories, split them, or r
 
 ## Phase 5 - Booking Flow
 
-- [ ] Build the public booking route for one salon slug.
-- [ ] Show bookable services, dates, and valid time slots only.
-- [ ] Collect customer details with a short guest form.
-- [ ] Create the appointment with a final backend availability check.
-- [ ] Show a clear booking confirmation screen.
+- [ x ] Build the public booking route for one salon slug.
+- [ x ] Show bookable services, dates, and valid time slots only.
+- [ x ] Show a simple customer calendar preview so available days are easier to understand before picking a slot.
+- [ x ] Collect customer details with a short guest form.
+- [ x ] Create the appointment with a final backend availability check.
+- [ x ] Show a clear booking confirmation screen.
 
 ### Simple Implementation Notes
 
 - Public route: Add a public Angular route for one salon slug so each salon gets its own booking page.
 - Service selection: Load only that salon's active services and let the customer pick one.
 - Availability: Add a public backend endpoint that returns valid slots for a selected service and date.
+- Calendar preview: Add a lightweight date calendar that helps the customer understand which days are bookable without turning the flow into a heavy scheduler.
 - Slot logic: The backend must calculate slots from opening hours, blocked times, and existing appointments.
 - Booking form: Keep the form short and guest-only, with no customer login.
 - Booking creation: Re-check the slot on the backend right before saving so double bookings are blocked.
@@ -433,6 +435,7 @@ Use this file as a shared working list: we can reorder stories, split them, or r
 - [ ] Slot interval: 15 min, 30 min, or another value?
 - [ ] Minimum lead time: Allow same-minute booking, 1 hour, 2 hours, or another rule?
 - [ ] Booking horizon: How far into the future can customers book?
+- [ ] Calendar preview: Show only the selected day, or a simple month view with bookable-day hints?
 - [ ] Buffer time: No buffer, or add a gap between appointments?
 - [ ] Slot display: Hide unavailable slots or show them as disabled?
 - [ ] Booking status: Should new bookings start as `confirmed` or `pending`?
@@ -449,6 +452,7 @@ Use this file as a shared working list: we can reorder stories, split them, or r
 - single slot time for now 30 mins only
 - 30 min lead time
 - will recheck with customer, let's do 4 weeks for now
+- simple month view with bookable-day hints
 - 10 mins buffer for now, make this a setting in admin page to set
 - show them as disabled
 - i would say pending and we give feedback once it's been confirmed by the admin
@@ -460,6 +464,7 @@ Use this file as a shared working list: we can reorder stories, split them, or r
 - Before testing, run `pnpm --filter backend db:migrate` so PostgreSQL gets the new `pending` booking status and the new `booking_buffer_minutes` salon setting.
 - Start backend and frontend and make sure both apps boot without errors.
 - Open a real public salon URL like `/s/<salonSlug>/book` and confirm the correct salon data and services load.
+- Confirm the customer calendar preview loads and visually distinguishes bookable vs non-bookable days for the current range.
 - Pick a service and a date and confirm only valid slots are shown.
 - Create one booking and confirm the success page shows the right summary.
 - Refresh the admin area and confirm the booking appears for the correct salon.
@@ -472,6 +477,7 @@ Use this file as a shared working list: we can reorder stories, split them, or r
 ### Done Means
 
 - A customer can finish a booking without admin help.
+- A customer can quickly understand bookable days from the calendar preview.
 - The backend is the final source of truth for slot validity.
 - Double bookings are blocked on the backend.
 - The confirmation screen works.
@@ -485,55 +491,159 @@ Use this file as a shared working list: we can reorder stories, split them, or r
 - [ ] Add a booking detail view with customer and service data.
 - [ ] Let admins confirm, cancel, or update a booking.
 - [ ] Let admins create a manual booking for walk-ins or phone calls.
+- [ ] Add an interactive admin calendar so appointments can be created and reviewed directly in a calendar view.
+
+### In Plain English
+
+- The admin should be able to run the salon day to day without leaving the app.
+- The system should support both passive review of bookings and fast active scheduling.
+- The calendar is not just visual decoration. It should become the main operating surface for phone bookings, quick reschedules, and understanding the day at a glance.
+
+### What Will Actually Happen In This Phase
+
+- The admin gets a proper bookings workspace, not just a raw upcoming list.
+- The app shows a day-first operational calendar with clear appointment blocks.
+- The admin can click into a day or time slot and create a booking manually.
+- Existing bookings can be opened, confirmed, cancelled, and rescheduled within the agreed scope.
+- Any booking change still goes through backend availability validation so the calendar never becomes the source of truth.
+
+### The Main Pieces We Would Build
+
+- Admin bookings data layer:
+	list, detail, create, update, confirm, cancel, reschedule.
+- Admin calendar UI:
+	day or week view with clickable time slots and visible booking blocks.
+- Manual booking form:
+	service, date/time, customer details, notes, and status.
+- Booking detail surface:
+	display service, status, customer info, notes, and available actions.
+- Filters and navigation:
+	day/week switching, date navigation, and simple filtering.
+- Validation integration:
+	manual changes reuse the same booking rules as the public flow.
 
 ### Simple Implementation Notes
 
 - Booking list: Add an admin bookings page or section that shows today's and upcoming bookings first.
+- Calendar view: Add an interactive calendar that lets the admin click into a day or time range and create or inspect appointments quickly.
 - Filters: Start simple with date and status filters, then add service if needed.
 - Detail view: Show booking time, service, status, customer details, and notes in one place.
 - Status actions: Allow admins to confirm pending bookings and cancel bookings cleanly.
 - Editing: Let admins change the selected time and service with backend validation.
 - Manual booking: Reuse the booking rules from the public flow so manual bookings follow the same availability logic.
+- Fast scheduling: Optimize the admin flow for phone bookings and day-to-day calendar organization, not just passive booking review.
 - Tenant safety: All booking reads and updates must stay scoped to the logged-in salon.
+
+### The First Admin Routes We Intend To Have
+
+- `GET /api/v1/admin/bookings`
+	List bookings by date range and optional status filter.
+- `GET /api/v1/admin/bookings/:bookingId`
+	Load one booking with customer and service details.
+- `POST /api/v1/admin/bookings`
+	Create a manual booking from the calendar or phone call flow.
+- `PATCH /api/v1/admin/bookings/:bookingId`
+	Update status, notes, or reschedule details within the agreed scope.
+- `GET /api/v1/admin/bookings/calendar`
+	Return bookings in a range optimized for calendar rendering.
+
+### The User Experience We Are Aiming For
+
+- The admin lands on a bookings view that makes today immediately understandable.
+- Empty slots are easy to scan, and occupied slots are easy to inspect.
+- A phone booking can be entered in a few quick steps without switching screens repeatedly.
+- Rescheduling should feel operational and safe, not like editing a raw database record.
+- The calendar and the list should complement each other: calendar for planning, list for quick filtering and detail review.
 
 ### Decisions To Make
 
 - [ ] UI shape: Keep this inside the current admin shell, or add a separate `/admin/bookings` page?
-- [ ] Default view: Show only today first, or today plus upcoming bookings together?
+- [ ] Default view: Show only today first, today plus upcoming list, or week view first?
 - [ ] Filters: Date + status only, or date + status + service in MVP?
 - [ ] Detail view: Inline expand, side drawer, or separate page?
 - [ ] Status flow: Can admins move `pending -> confirmed -> completed`, and cancel from both `pending` and `confirmed`?
 - [ ] Editing scope: Allow full reschedule in Phase 6, or only confirm/cancel first?
 - [ ] Manual booking: Include manual create in Phase 6 MVP, or postpone it?
 - [ ] Customer editing: Can admins edit customer contact details from the booking view?
-- [ ] Calendar style: Simple list first, or do you want a calendar grid already in Phase 6?
+- [ ] Calendar style: Day view only first, or day + week switcher in MVP?
+- [ ] Calendar interaction: Click empty slot to create, or click + drag time range to create?
+- [ ] Slot resolution: Show 30-minute rows only, or finer visual rows with booking snapping to 30-minute rules?
+- [ ] Reschedule UX: Open a form after selecting a new slot, or drag/drop directly in the calendar?
+- [ ] Booking cards: Show customer name only, or customer + service + status badge in each block?
+- [ ] Manual booking defaults: Should admin-created bookings start as `confirmed` or also `pending`?
+- [ ] No-show handling: Ignore for MVP, or include a simple `completed/cancelled` only workflow?
 
 ### Decisions
 
+- UI shape: i think the bookings should be one page and in the navbar have a second one titled settings and there we navigate to the current implemented admin shell
+- Default view: Todays should be default, make it interactive though so the admin can swith views manually
+- Filters: in the MVP let's start with Date
+- Detail view: Side drawer
+- Status flow: Yes in the MVP let's give them all the control we can
+- Editing scope: confirm cancel first
+- Manual booking: include it it's an essential part of the mvp
+- Customer editing: no let's not give them that option yet
+- Calendar style: interactive calendar grid in Phase 6
+- Calendar interaction: click
+- Slot resolution: 30 minute rows only for now
+- Reschedule UX: open a form 
+- Booking cards:Use customer + service + status badge in each block.
+- Manual booking defaults: confirmed
+- No-show handling: ignore
+
+### Recommended Default If You Want To Move Fast
+
 - UI shape:
+	keep it inside the current admin shell first.
 - Default view:
+	show today in calendar view plus a short upcoming list.
 - Filters:
+	date + status only.
 - Detail view:
+	side drawer.
 - Status flow:
+	`pending -> confirmed -> completed`, with cancel allowed from `pending` and `confirmed`.
 - Editing scope:
+	allow reschedule in Phase 6.
 - Manual booking:
+	include it now.
 - Customer editing:
+	yes, but only contact details and notes.
 - Calendar style:
+	day view first, with week view if it stays simple.
+- Calendar interaction:
+	click empty slot to create.
+- Slot resolution:
+	visual rows can be 30 minutes to match the booking rules.
+- Reschedule UX:
+	select a new slot and confirm in a drawer, not drag/drop yet.
+- Booking cards:
+	customer name + service + status.
+- Manual booking defaults:
+	`confirmed` by default for admin-created phone bookings.
+- No-show handling:
+	skip it for MVP.
 
 ### How To Validate
 
 - Log in as an admin and confirm bookings for only that salon are shown.
+- Confirm the default bookings view opens in the agreed layout and focuses on the correct date range.
+- Confirm the calendar view shows appointments in the expected day or week layout.
 - Confirm a pending booking and verify the new status appears after refresh.
 - Cancel a booking and verify it no longer blocks that slot.
 - Change the booking date or time and verify overlap checks still work.
 - Filter by date and status and confirm the list updates correctly.
 - Open booking details and confirm customer contact data and service data are correct.
 - Create one manual booking, if included, and confirm it appears in the list and blocks the slot.
+- Create one phone booking directly from the calendar view and confirm it follows the same overlap rules.
+- Try creating a manual booking in a blocked or conflicting slot and confirm the backend rejects it cleanly.
+- Reschedule one booking from the calendar flow and confirm the old slot opens up again.
 - Try to access or modify another salon's booking and confirm tenant isolation is still enforced.
 
 ### Done Means
 
 - Admins can see and find their bookings quickly.
+- Admins can organize their day from an interactive calendar instead of only a list.
 - Admins can open a booking and understand its current state.
 - Admins can confirm, cancel, and update bookings within the agreed scope.
 - Manual bookings work too, if included in the phase scope.

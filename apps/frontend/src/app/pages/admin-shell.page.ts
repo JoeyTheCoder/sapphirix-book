@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NgFor, NgIf } from '@angular/common';
+import { Router, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 
 import { AdminSetupApiService } from '../core/admin-setup-api.service';
@@ -117,7 +118,7 @@ function formatMoney(amount: number, currency: string): string {
 @Component({
   selector: 'app-admin-shell-page',
   standalone: true,
-  imports: [FormsModule, NgFor, NgIf, ButtonModule],
+  imports: [FormsModule, NgFor, NgIf, RouterLink, ButtonModule],
   template: `
     <!-- Top navigation bar â€” gradient -->
     <header class="sticky top-0 z-30 bg-gradient-to-r from-violet-700 to-fuchsia-600 shadow-lg shadow-violet-500/20">
@@ -128,6 +129,27 @@ function formatMoney(amount: number, currency: string): string {
           </div>
           <span class="text-sm font-bold tracking-wide text-white">{{ salon()?.name || 'Sapphirix' }}</span>
         </div>
+
+        <nav class="hidden items-center gap-1 rounded-full bg-white/10 p-1 md:flex">
+          <a
+            routerLink="/admin"
+            class="rounded-full px-3 py-1.5 text-sm font-medium transition-colors"
+            [class.bg-white]="isActive('/admin')"
+            [class.text-violet-700]="isActive('/admin')"
+            [class.text-white]="!isActive('/admin')"
+          >
+            Bookings
+          </a>
+          <a
+            routerLink="/admin/settings"
+            class="rounded-full px-3 py-1.5 text-sm font-medium transition-colors"
+            [class.bg-white]="isActive('/admin/settings')"
+            [class.text-violet-700]="isActive('/admin/settings')"
+            [class.text-white]="!isActive('/admin/settings')"
+          >
+            Settings
+          </a>
+        </nav>
 
         <div class="flex items-center gap-1" *ngIf="authService.adminProfile() as profile">
           <span class="mr-2 hidden text-sm text-white/70 sm:inline">{{ profile.admin.firstName }} {{ profile.admin.lastName }}</span>
@@ -573,6 +595,7 @@ function formatMoney(amount: number, currency: string): string {
 export class AdminShellPage {
   readonly authService = inject(AuthService);
   private readonly adminSetupApi = inject(AdminSetupApiService);
+  private readonly router = inject(Router);
 
   readonly loading = signal(true);
   readonly loadError = signal<string | null>(null);
@@ -634,6 +657,10 @@ export class AdminShellPage {
 
   async logout(): Promise<void> {
     await this.authService.signOut();
+  }
+
+  isActive(path: string): boolean {
+    return this.router.url === path;
   }
 
   logoUrl(): string | null {

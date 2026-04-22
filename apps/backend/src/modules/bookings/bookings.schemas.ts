@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/;
+const isoMonthPattern = /^\d{4}-\d{2}$/;
 
 const optionalText = z.preprocess(
   (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
@@ -14,6 +15,11 @@ const requiredEmail = z.email();
 export const availabilityQuerySchema = z.object({
   serviceId: z.uuid(),
   date: z.string().regex(isoDatePattern, 'Expected YYYY-MM-DD'),
+});
+
+export const availabilityCalendarPreviewQuerySchema = z.object({
+  serviceId: z.uuid(),
+  month: z.string().regex(isoMonthPattern, 'Expected YYYY-MM'),
 });
 
 export const createBookingSchema = z.object({
@@ -30,4 +36,5 @@ export const createBookingSchema = z.object({
 });
 
 export type AvailabilityQueryInput = z.infer<typeof availabilityQuerySchema>;
+export type AvailabilityCalendarPreviewQueryInput = z.infer<typeof availabilityCalendarPreviewQuerySchema>;
 export type CreateBookingInput = z.infer<typeof createBookingSchema>;

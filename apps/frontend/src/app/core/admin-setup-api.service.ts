@@ -4,7 +4,10 @@ import { firstValueFrom } from 'rxjs';
 
 import { firebaseAuth } from './firebase-client';
 import type {
+  AdminBookingCalendar,
   AdminBookingItem,
+  AdminBookingPayload,
+  AdminBookingStatus,
   OpeningHourSlot,
   ReplaceOpeningHoursPayload,
   SalonProfile,
@@ -132,5 +135,49 @@ export class AdminSetupApiService {
       this.http.get<{ bookings: AdminBookingItem[] }>(`${adminApiBaseUrl}/bookings/upcoming`, { headers }),
     );
     return response.bookings;
+  }
+
+  async listBookings(date: string, status?: AdminBookingStatus): Promise<AdminBookingItem[]> {
+    const headers = await this.createAuthHeaders();
+    const params = new URLSearchParams({ date });
+
+    if (status) {
+      params.set('status', status);
+    }
+
+    const response = await firstValueFrom(
+      this.http.get<{ bookings: AdminBookingItem[] }>(`${adminApiBaseUrl}/bookings?${params.toString()}`, { headers }),
+    );
+    return response.bookings;
+  }
+
+  async getBooking(bookingId: string): Promise<AdminBookingItem> {
+    const headers = await this.createAuthHeaders();
+    const response = await firstValueFrom(
+      this.http.get<{ booking: AdminBookingItem }>(`${adminApiBaseUrl}/bookings/${bookingId}`, { headers }),
+    );
+    return response.booking;
+  }
+
+  async listCalendarBookings(startDate: string, endDate: string): Promise<AdminBookingCalendar> {
+    const headers = await this.createAuthHeaders();
+    const params = new URLSearchParams({ startDate, endDate });
+    return firstValueFrom(this.http.get<AdminBookingCalendar>(`${adminApiBaseUrl}/bookings/calendar?${params.toString()}`, { headers }));
+  }
+
+  async createBooking(payload: AdminBookingPayload): Promise<AdminBookingItem> {
+    const headers = await this.createAuthHeaders();
+    const response = await firstValueFrom(
+      this.http.post<{ booking: AdminBookingItem }>(`${adminApiBaseUrl}/bookings`, payload, { headers }),
+    );
+    return response.booking;
+  }
+
+  async updateBookingStatus(bookingId: string, status: AdminBookingStatus): Promise<AdminBookingItem> {
+    const headers = await this.createAuthHeaders();
+    const response = await firstValueFrom(
+      this.http.patch<{ booking: AdminBookingItem }>(`${adminApiBaseUrl}/bookings/${bookingId}`, { status }, { headers }),
+    );
+    return response.booking;
   }
 }

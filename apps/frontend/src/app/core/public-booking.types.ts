@@ -52,6 +52,36 @@ export type AvailabilityResult = {
   slots: AvailabilitySlot[];
 };
 
+export type AvailabilityCalendarPreviewDay = {
+  date: string;
+  dayOfMonth: number;
+  inRequestedMonth: boolean;
+  available: boolean;
+  selectable: boolean;
+  availableSlotCount: number;
+};
+
+export type AvailabilityCalendarPreviewResult = {
+  salon: {
+    slug: string;
+    name: string;
+    timezone: string;
+  };
+  service: {
+    id: string;
+    name: string;
+    durationMinutes: number;
+  };
+  month: string;
+  today: string;
+  latest: string;
+  bookingHorizonDays: number;
+  slotIntervalMinutes: number;
+  minimumLeadTimeMinutes: number;
+  totalAvailableDays: number;
+  days: AvailabilityCalendarPreviewDay[];
+};
+
 export type CreateBookingPayload = {
   salonSlug: string;
   serviceId: string;

@@ -6,7 +6,8 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "tsx src/scripts/db-migrate.ts",
+    "provision:dev-admin": "tsx src/scripts/provision-dev-admin.ts"
   },
   "dependencies": {
     "cors": "^2.8.6",

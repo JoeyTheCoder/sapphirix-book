@@ -6,6 +6,8 @@ import { ActivatedRoute } from '@angular/router';
 import { PublicBookingApiService } from '../core/public-booking-api.service';
 import { frontendEnv } from '../core/frontend-env';
 import type {
+  AvailabilityCalendarPreviewDay,
+  AvailabilityCalendarPreviewResult,
   AvailabilitySlot,
   BookingConfirmation,
   PublicSalon,
@@ -19,6 +21,8 @@ type BookingFormState = {
   phone: string;
   notes: string;
 };
+
+const weekdayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 function formatMoney(amount: number, currency: string): string {
   return new Intl.NumberFormat('de-CH', {
@@ -41,6 +45,36 @@ function toIsoDate(value: Date): string {
 
 function addDays(value: Date, days: number): Date {
   return new Date(value.getTime() + days * 24 * 60 * 60 * 1000);
+}
+
+function getMonthForIsoDate(date: string): string {
+  return date.slice(0, 7);
+}
+
+function addMonthsToIsoMonth(month: string, months: number): string {
+  const [year, monthNumber] = month.split('-').map(Number);
+  const nextMonth = new Date(Date.UTC(year, monthNumber - 1 + months, 1));
+
+  return `${nextMonth.getUTCFullYear()}-${String(nextMonth.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+function formatMonthLabel(month: string): string {
+  const [year, monthNumber] = month.split('-').map(Number);
+
+  return new Intl.DateTimeFormat('de-CH', {
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(Date.UTC(year, monthNumber - 1, 1)));
+}
+
+function formatDateLabel(date: string): string {
+  const [year, month, day] = date.split('-').map(Number);
+
+  return new Intl.DateTimeFormat('de-CH', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  }).format(new Date(Date.UTC(year, month - 1, day)));
 }
 
 function createEmptyBookingForm(): BookingFormState {
@@ -118,9 +152,9 @@ function readErrorMessage(error: unknown, fallbackMessage: string): string {
                 <p class="text-xs font-semibold uppercase tracking-[0.25em] text-white/60">How It Works</p>
                 <ol class="mt-4 space-y-3 text-sm text-white/90">
                   <li>1. Pick one service for this booking.</li>
-                  <li>2. Choose a date and one available start time.</li>
-                  <li>3. Enter your details and send the request.</li>
-                  <li>4. The salon reviews and confirms your appointment.</li>
+                  <li>2. Check the month preview and choose a highlighted day.</li>
+                  <li>3. Choose one available start time.</li>
+                  <li>4. Enter your details and send the request.</li>
                 </ol>
               </div>
             </div>
@@ -193,16 +227,96 @@ function readErrorMessage(error: unknown, fallbackMessage: string): string {
               </section>
 
               <section>
-                <h3 class="mb-3 text-sm font-semibold text-gray-900">2. Pick a date</h3>
-                <input
-                  type="date"
-                  name="bookingDate"
-                  [ngModel]="bookingDate"
-                  (ngModelChange)="changeDate($event)"
-                  [min]="minBookableDate()"
-                  [max]="maxBookableDate()"
-                  class="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition-all focus:border-violet-500 focus:bg-white focus:ring-3 focus:ring-violet-500/15"
-                />
+                <div class="mb-3 flex items-center justify-between gap-3">
+                  <h3 class="text-sm font-semibold text-gray-900">2. Pick a date</h3>
+                  <span class="text-xs text-gray-400">{{ calendarPreview()?.totalAvailableDays || 0 }} bookable days</span>
+                </div>
+
+                <div *ngIf="calendarError()" class="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                  {{ calendarError() }}
+                </div>
+
+                <div class="rounded-3xl border border-gray-200 bg-gray-50 p-4 sm:p-5">
+                  <div class="flex items-center justify-between gap-3">
+                    <button
+                      type="button"
+                      (click)="showPreviousMonth()"
+                      [disabled]="!canGoToPreviousMonth() || calendarLoading()"
+                      class="flex h-10 w-10 items-center justify-center rounded-2xl border border-gray-200 bg-white text-gray-700 transition-all hover:border-violet-500 hover:text-violet-600 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <i class="pi pi-chevron-left"></i>
+                    </button>
+
+                    <div class="text-center">
+                      <p class="text-sm font-semibold capitalize text-gray-900">{{ calendarMonthLabel() }}</p>
+                      <p class="mt-1 text-xs text-gray-500">Tap a highlighted day to load the available start times.</p>
+                    </div>
+
+                    <button
+                      type="button"
+                      (click)="showNextMonth()"
+                      [disabled]="!canGoToNextMonth() || calendarLoading()"
+                      class="flex h-10 w-10 items-center justify-center rounded-2xl border border-gray-200 bg-white text-gray-700 transition-all hover:border-violet-500 hover:text-violet-600 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <i class="pi pi-chevron-right"></i>
+                    </button>
+                  </div>
+
+                  <div class="mt-4 grid grid-cols-7 gap-2 text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-400">
+                    <span *ngFor="let weekday of weekdayLabels">{{ weekday }}</span>
+                  </div>
+
+                  <div *ngIf="calendarLoading()" class="mt-4 rounded-2xl border border-dashed border-gray-200 bg-white px-4 py-6 text-sm text-gray-500">
+                    Loading calendar preview…
+                  </div>
+
+                  <div *ngIf="!calendarLoading() && calendarDays().length > 0" class="mt-4 grid grid-cols-7 gap-2">
+                    <button
+                      *ngFor="let day of calendarDays()"
+                      type="button"
+                      [disabled]="!day.selectable"
+                      (click)="selectCalendarDay(day)"
+                      class="min-h-[4.5rem] rounded-2xl border px-2 py-2 text-left transition-all"
+                      [class.opacity-45]="!day.inRequestedMonth"
+                      [class.cursor-not-allowed]="!day.selectable"
+                      [class.border-violet-500]="isSelectedCalendarDay(day)"
+                      [class.bg-violet-600]="isSelectedCalendarDay(day)"
+                      [class.text-white]="isSelectedCalendarDay(day)"
+                      [class.border-emerald-200]="!isSelectedCalendarDay(day) && day.selectable"
+                      [class.bg-emerald-50]="!isSelectedCalendarDay(day) && day.selectable"
+                      [class.text-emerald-900]="!isSelectedCalendarDay(day) && day.selectable"
+                      [class.border-gray-200]="!isSelectedCalendarDay(day) && !day.selectable"
+                      [class.bg-white]="!isSelectedCalendarDay(day) && !day.selectable"
+                      [class.text-gray-400]="!isSelectedCalendarDay(day) && !day.selectable"
+                    >
+                      <span class="block text-sm font-semibold">{{ day.dayOfMonth }}</span>
+                      <span class="mt-1 block text-[10px] uppercase tracking-wide">
+                        {{ day.available ? day.availableSlotCount + ' slots' : 'Unavailable' }}
+                      </span>
+                    </button>
+                  </div>
+
+                  <div *ngIf="!calendarLoading() && calendarDays().length === 0" class="mt-4 rounded-2xl border border-dashed border-gray-200 bg-white px-4 py-6 text-sm text-gray-500">
+                    No calendar preview is available for this service yet.
+                  </div>
+
+                  <div class="mt-4 flex flex-wrap items-center gap-4 text-xs text-gray-500">
+                    <span class="inline-flex items-center gap-2">
+                      <span class="h-2.5 w-2.5 rounded-full bg-emerald-400"></span>
+                      Bookable day
+                    </span>
+                    <span class="inline-flex items-center gap-2">
+                      <span class="h-2.5 w-2.5 rounded-full bg-gray-300"></span>
+                      No valid slots
+                    </span>
+                    <span class="inline-flex items-center gap-2">
+                      <span class="h-2.5 w-2.5 rounded-full bg-violet-500"></span>
+                      Selected day
+                    </span>
+                  </div>
+                </div>
+
+                <p class="mt-3 text-sm text-gray-500">Selected date: <span class="font-medium text-gray-900">{{ selectedDateLabel() }}</span></p>
               </section>
 
               <section>
@@ -340,16 +454,21 @@ export class PublicBookingPage {
 
   readonly loading = signal(true);
   readonly loadError = signal<string | null>(null);
+  readonly calendarLoading = signal(false);
+  readonly calendarError = signal<string | null>(null);
   readonly availabilityLoading = signal(false);
   readonly availabilityError = signal<string | null>(null);
   readonly submitting = signal(false);
   readonly submitError = signal<string | null>(null);
   readonly salon = signal<PublicSalon | null>(null);
   readonly services = signal<PublicService[]>([]);
+  readonly calendarPreview = signal<AvailabilityCalendarPreviewResult | null>(null);
   readonly slots = signal<AvailabilitySlot[]>([]);
   readonly selectedServiceId = signal<string | null>(null);
   readonly selectedSlot = signal<AvailabilitySlot | null>(null);
   readonly completedBooking = signal<BookingConfirmation | null>(null);
+  readonly visibleMonth = signal('');
+  readonly weekdayLabels = weekdayLabels;
 
   readonly bookingForm = createEmptyBookingForm();
 
@@ -367,6 +486,14 @@ export class PublicBookingPage {
     return toIsoDate(addDays(new Date(), 27));
   }
 
+  minBookableMonth(): string {
+    return getMonthForIsoDate(this.minBookableDate());
+  }
+
+  maxBookableMonth(): string {
+    return getMonthForIsoDate(this.maxBookableDate());
+  }
+
   logoUrl(): string | null {
     const logoUrl = this.salon()?.logoUrl;
 
@@ -381,15 +508,73 @@ export class PublicBookingPage {
     return this.services().find((service) => service.id === this.selectedServiceId()) ?? null;
   }
 
+  calendarDays(): AvailabilityCalendarPreviewDay[] {
+    return this.calendarPreview()?.days ?? [];
+  }
+
+  calendarMonthLabel(): string {
+    const visibleMonth = this.visibleMonth();
+    return visibleMonth ? formatMonthLabel(visibleMonth) : '';
+  }
+
+  selectedDateLabel(): string {
+    return this.bookingDate ? formatDateLabel(this.bookingDate) : 'Not selected';
+  }
+
+  isSelectedCalendarDay(day: AvailabilityCalendarPreviewDay): boolean {
+    return this.bookingDate === day.date;
+  }
+
+  canGoToPreviousMonth(): boolean {
+    const visibleMonth = this.visibleMonth();
+    return visibleMonth.length > 0 && visibleMonth > this.minBookableMonth();
+  }
+
+  canGoToNextMonth(): boolean {
+    const visibleMonth = this.visibleMonth();
+    return visibleMonth.length > 0 && visibleMonth < this.maxBookableMonth();
+  }
+
   async selectService(serviceId: string): Promise<void> {
     this.selectedServiceId.set(serviceId);
     this.selectedSlot.set(null);
+    await this.loadCalendarPreview(true);
     await this.loadAvailability();
   }
 
-  async changeDate(date: string): Promise<void> {
-    this.bookingDate = date;
+  async showPreviousMonth(): Promise<void> {
+    if (!this.canGoToPreviousMonth()) {
+      return;
+    }
+
+    this.visibleMonth.set(addMonthsToIsoMonth(this.visibleMonth(), -1));
+    await this.loadCalendarPreview(false);
+  }
+
+  async showNextMonth(): Promise<void> {
+    if (!this.canGoToNextMonth()) {
+      return;
+    }
+
+    this.visibleMonth.set(addMonthsToIsoMonth(this.visibleMonth(), 1));
+    await this.loadCalendarPreview(false);
+  }
+
+  async selectCalendarDay(day: AvailabilityCalendarPreviewDay): Promise<void> {
+    if (!day.selectable) {
+      return;
+    }
+
+    this.bookingDate = day.date;
     this.selectedSlot.set(null);
+
+    const selectedMonth = getMonthForIsoDate(day.date);
+
+    if (selectedMonth !== this.visibleMonth()) {
+      this.visibleMonth.set(selectedMonth);
+      await this.loadCalendarPreview(false);
+    }
+
     await this.loadAvailability();
   }
 
@@ -441,6 +626,7 @@ export class PublicBookingPage {
       this.completedBooking.set(booking);
       this.selectedSlot.set(null);
       this.bookingForm.notes = '';
+      await this.loadCalendarPreview(false);
       await this.loadAvailability();
     } catch (error: unknown) {
       this.submitError.set(readErrorMessage(error, 'Failed to create the booking.'));
@@ -472,9 +658,11 @@ export class PublicBookingPage {
       this.salon.set(result.salon);
       this.services.set(result.services);
       this.bookingDate = this.minBookableDate();
+      this.visibleMonth.set(getMonthForIsoDate(this.bookingDate));
 
       if (result.services.length > 0) {
         this.selectedServiceId.set(result.services[0]!.id);
+        await this.loadCalendarPreview(true);
         await this.loadAvailability();
       }
     } catch (error: unknown) {
@@ -505,5 +693,53 @@ export class PublicBookingPage {
     } finally {
       this.availabilityLoading.set(false);
     }
+  }
+
+  private async loadCalendarPreview(syncSelectedDate: boolean): Promise<void> {
+    const salon = this.salon();
+    const serviceId = this.selectedServiceId();
+    const visibleMonth = this.visibleMonth();
+
+    if (!salon || !serviceId || !visibleMonth) {
+      this.calendarPreview.set(null);
+      return;
+    }
+
+    this.calendarLoading.set(true);
+    this.calendarError.set(null);
+
+    try {
+      const calendar = await this.bookingApi.getAvailabilityCalendarPreview(salon.slug, serviceId, visibleMonth);
+      this.calendarPreview.set(calendar);
+
+      if (syncSelectedDate) {
+        const preferredDate = this.resolvePreferredBookingDate(calendar);
+
+        if (preferredDate) {
+          this.bookingDate = preferredDate;
+        }
+      }
+    } catch (error: unknown) {
+      this.calendarPreview.set(null);
+      this.calendarError.set(readErrorMessage(error, 'Failed to load the calendar preview.'));
+    } finally {
+      this.calendarLoading.set(false);
+    }
+  }
+
+  private resolvePreferredBookingDate(calendar: AvailabilityCalendarPreviewResult): string | null {
+    const currentDay = calendar.days.find((day) => day.date === this.bookingDate && day.selectable);
+
+    if (currentDay) {
+      return currentDay.date;
+    }
+
+    const requestedMonthDay = calendar.days.find((day) => day.inRequestedMonth && day.selectable);
+
+    if (requestedMonthDay) {
+      return requestedMonthDay.date;
+    }
+
+    return calendar.days.find((day) => day.selectable)?.date ?? null;
   }
 }

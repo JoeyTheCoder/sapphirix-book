@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
 import type {
+  AvailabilityCalendarPreviewResult,
   AvailabilityResult,
   BookingConfirmation,
   CreateBookingPayload,
@@ -33,6 +34,21 @@ export class PublicBookingApiService {
     );
 
     return response.availability;
+  }
+
+  async getAvailabilityCalendarPreview(
+    salonSlug: string,
+    serviceId: string,
+    month: string,
+  ): Promise<AvailabilityCalendarPreviewResult> {
+    const params = new HttpParams().set('serviceId', serviceId).set('month', month);
+    const response = await firstValueFrom(
+      this.http.get<{ calendar: AvailabilityCalendarPreviewResult }>(`${publicApiBaseUrl}/salons/${salonSlug}/availability-calendar`, {
+        params,
+      }),
+    );
+
+    return response.calendar;
   }
 
   async createBooking(payload: CreateBookingPayload): Promise<BookingConfirmation> {

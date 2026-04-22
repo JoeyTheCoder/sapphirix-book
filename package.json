@@ -5,6 +5,7 @@
     "env:sync": "node ./scripts/sync-frontend-env.mjs",
     "db:dump": "node ./scripts/dev-db.mjs dump",
     "db:restore": "node ./scripts/dev-db.mjs restore",
+    "provision:dev-admin": "pnpm --filter backend provision:dev-admin",
     "dev:frontend": "pnpm --filter frontend start",
     "dev:backend": "pnpm --filter backend dev",
     "dev": "concurrently \"pnpm dev:frontend\" \"pnpm dev:backend\"",

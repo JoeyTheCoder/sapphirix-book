@@ -44,13 +44,17 @@ export type TimeOffBlock = {
   createdAt: string;
 };
 
+export type AdminBookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed';
+
 export type AdminBookingItem = {
   id: string;
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  status: AdminBookingStatus;
   startsAt: string;
   endsAt: string;
   priceAmount: number;
   currency: string;
+  customerNotes: string | null;
+  internalNotes: string | null;
   customer: {
     firstName: string;
     lastName: string;
@@ -58,8 +62,32 @@ export type AdminBookingItem = {
     phone: string | null;
   };
   service: {
+    id: string;
     name: string;
+    durationMinutes: number;
   };
+};
+
+export type AdminBookingCalendar = {
+  startDate: string;
+  endDate: string;
+  bookings: AdminBookingItem[];
+};
+
+export type AdminBookingPayload = {
+  serviceId: string;
+  startsAt: string;
+  customer: {
+    firstName: string;
+    lastName: string;
+    email?: string;
+    phone?: string;
+  };
+  customerNotes?: string;
+};
+
+export type AdminBookingStatusPayload = {
+  status: AdminBookingStatus;
 };
 
 export type SalonProfilePayload = {

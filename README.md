@@ -50,7 +50,7 @@ pnpm install
 docker compose up -d
 ```
 
-This starts a local PostgreSQL 17 instance on `localhost:5432`.
+This starts a local PostgreSQL 17 instance on `localhost:5433`.
 
 ### 3. Create the root env file
 
@@ -63,7 +63,7 @@ File:
 Current local baseline:
 
 ```env
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/sapphirix_booking
+DATABASE_URL=postgresql://postgres:postgres@localhost:5433/sapphirix_booking
 PORT=3000
 PUBLIC_API_BASE_URL=http://localhost:3000/api/v1
 PUBLIC_ASSET_BASE_URL=http://localhost:3000
@@ -95,6 +95,7 @@ From the repository root:
 pnpm env:sync
 pnpm db:dump
 pnpm db:restore -- ./.backups/your-dump.sql
+pnpm provision:dev-admin -- --salon-name "Demo Salon" --salon-slug demo-salon --admin-email owner@example.com --admin-password "ChangeMe123!" --admin-first-name Demo --admin-last-name Owner
 pnpm dev
 pnpm dev:frontend
 pnpm dev:backend
@@ -118,6 +119,38 @@ Recommended flow:
 4. Run `pnpm --filter backend db:migrate` afterward if the target repo revision is newer.
 
 This is the pragmatic way to keep salon/admin/service/test-booking data aligned across devices while keeping `.env` and Docker volumes local-only.
+
+---
+
+## Provision A Salon And Admin
+
+To create a salon plus a matching Firebase-backed admin user in one step, run:
+
+```bash
+pnpm provision:dev-admin -- --salon-name "Demo Salon" --salon-slug demo-salon --admin-email owner@example.com --admin-password "ChangeMe123!" --admin-first-name Demo --admin-last-name Owner
+```
+
+Optional fields you can add:
+
+```text
+--salon-email
+--salon-phone
+--salon-description
+--timezone
+--address-line-1
+--address-line-2
+--postal-code
+--city
+--country-code
+```
+
+What this does:
+
+1. Creates the salon row if the slug does not exist yet.
+2. Creates the Firebase Auth user if the email does not exist yet.
+3. Creates the matching `admins` table row linked by Firebase UID.
+
+If the salon or Firebase user already exists, the script reuses them. If the existing admin linkage is inconsistent, it stops instead of silently creating broken auth state.
 
 ---
 

@@ -2,8 +2,12 @@ import { Router } from 'express';
 
 import { HttpError } from '../errors/http-error.js';
 import { validateBody } from '../middleware/validate-body.js';
-import { availabilityQuerySchema, createBookingSchema } from '../modules/bookings/bookings.schemas.js';
-import { createBooking, getAvailability } from '../modules/bookings/bookings.service.js';
+import {
+  availabilityCalendarPreviewQuerySchema,
+  availabilityQuerySchema,
+  createBookingSchema,
+} from '../modules/bookings/bookings.schemas.js';
+import { createBooking, getAvailability, getAvailabilityCalendarPreview } from '../modules/bookings/bookings.service.js';
 import { getSalonBySlug, listServicesBySalonSlug } from '../modules/salons/salons.service.js';
 
 export function createPublicRouter(): Router {
@@ -51,6 +55,25 @@ export function createPublicRouter(): Router {
       });
 
       res.json({ availability });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get('/salons/:slug/availability-calendar', async (req, res, next) => {
+    try {
+      const queryResult = availabilityCalendarPreviewQuerySchema.safeParse(req.query);
+
+      if (!queryResult.success) {
+        throw new HttpError(400, 'Invalid availability calendar query', queryResult.error.flatten());
+      }
+
+      const calendar = await getAvailabilityCalendarPreview({
+        salonSlug: req.params.slug,
+        ...queryResult.data,
+      });
+
+      res.json({ calendar });
     } catch (error) {
       next(error);
     }
