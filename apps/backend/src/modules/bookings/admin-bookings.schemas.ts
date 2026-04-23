@@ -7,6 +7,10 @@ const optionalText = z.preprocess(
   (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
   z.string().trim().min(1).optional(),
 );
+const optionalEmail = z.preprocess(
+  (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+  z.email().optional(),
+);
 
 export const adminBookingsQuerySchema = z.object({
   date: z.string().regex(isoDatePattern, 'Expected YYYY-MM-DD'),
@@ -29,8 +33,8 @@ export const createAdminBookingSchema = z.object({
   customer: z.object({
     firstName: requiredText,
     lastName: requiredText,
-    email: z.email(),
-    phone: requiredText,
+    email: optionalEmail,
+    phone: optionalText,
   }),
   customerNotes: optionalText,
 });

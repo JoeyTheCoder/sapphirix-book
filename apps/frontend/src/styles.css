@@ -1,36 +1,84 @@
-/* Global styles */
+/* Global styles — FadeFlow redesign */
 @import "tailwindcss";
 @import "primeicons/primeicons.css";
 
-/* Base styles — subtle violet mesh gradient background */
+/* ── FadeFlow design tokens ── */
+:root {
+  /* Background layers */
+  --ff-bg:           #f5f2ec;
+  --ff-bg-muted:     #F1F5F9;
+  /* Surfaces */
+  --ff-surface:      #ffffff;
+  --ff-surface-alt:  #faf8f3;
+  /* Ink (text) */
+  --ff-ink:          #0F1E3A;
+  --ff-ink-muted:    #5a6a82;
+  --ff-ink-faint:    #8d8a94;
+  /* Borders */
+  --ff-line:         #e3ddd0;
+  --ff-line-strong:  #c9c3b3;
+  /* Brand accent — Alpine Teal */
+  --ff-accent:       #16C1C6;
+  --ff-accent-sky:   #2DA7F7;
+  --ff-accent-soft:  #C8F2F3;
+  --ff-accent-text:  #0a6b6e;
+  /* Status */
+  --ff-ok:           #0DB39E;
+  --ff-ok-soft:      #ccfaf4;
+  --ff-warn:         #d97706;
+  --ff-warn-soft:    #fef3c7;
+  --ff-bad:          #dc2626;
+  --ff-bad-soft:     #fee2e2;
+  /* Radius */
+  --ff-r-sm: 4px;
+  --ff-r-md: 6px;
+  --ff-r-lg: 10px;
+}
+
 body {
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  color: oklch(0.145 0 0);
-  background-color: oklch(0.97 0.008 293);
-  background-image:
-    radial-gradient(ellipse 80% 55% at 10% 0%, oklch(0.88 0.06 293 / 0.28) 0%, transparent 60%),
-    radial-gradient(ellipse 55% 45% at 92% 8%, oklch(0.87 0.06 340 / 0.2) 0%, transparent 55%);
-  background-attachment: fixed;
+  color: var(--ff-ink);
+  background-color: var(--ff-bg);
 }
 
-/* Tailwind v4 custom theme tokens */
+/* Display type — Fraunces serif for editorial headings */
+.ff-display {
+  font-family: "Fraunces", "Instrument Serif", Georgia, serif;
+}
+
+/* Mono labels */
+.ff-mono {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}
+
+/* Shared focus ring */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  border-color: var(--ff-accent) !important;
+  box-shadow: 0 0 0 3px var(--ff-accent-soft);
+}
+
+/* Tailwind v4 custom theme tokens — FadeFlow palette */
 @theme {
-  --color-primary-50: oklch(0.969 0.016 293.756);
-  --color-primary-100: oklch(0.943 0.029 294.588);
-  --color-primary-200: oklch(0.894 0.057 293.283);
-  --color-primary-300: oklch(0.811 0.111 293.571);
-  --color-primary-400: oklch(0.702 0.183 293.541);
-  --color-primary-500: oklch(0.606 0.25 292.717);
-  --color-primary-600: oklch(0.541 0.281 293.009);
-  --color-primary-700: oklch(0.491 0.27 292.581);
-  --color-primary-800: oklch(0.432 0.232 292.759);
-  --color-primary-900: oklch(0.38 0.189 293.745);
-  --color-primary-950: oklch(0.283 0.141 291.089);
+  --color-ff-accent:      #16C1C6;
+  --color-ff-sky:         #2DA7F7;
+  --color-ff-navy:        #0F1E3A;
+  --color-ff-aqua:        #C8F2F3;
+  --color-ff-green:       #0DB39E;
+  --color-ff-mist:        #F1F5F9;
+  --color-ff-bg:          #f5f2ec;
 }
 
-/* PrimeNG component overrides for Tailwind harmony */
+/* PrimeNG minimal overrides */
 :root {
-  --p-button-border-radius: 0.5rem;
+  --p-button-border-radius: var(--ff-r-md);
+  --p-button-primary-background: var(--ff-accent);
+  --p-button-primary-hover-background: #13adb2;
+  --p-button-primary-border-color: var(--ff-accent);
+  --p-button-primary-hover-border-color: #13adb2;
+  --p-button-primary-color: #ffffff;
 }

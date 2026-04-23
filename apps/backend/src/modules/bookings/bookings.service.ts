@@ -370,7 +370,7 @@ function mapBookingRow(row: BookingListRow) {
 async function insertCustomerAndBooking(
   salon: SalonBookingConfig,
   service: ServiceRecord,
-  input: CreateBookingInput | CreateAdminBookingInput,
+  input: CreateBookingInput,
   status: 'pending' | 'confirmed',
 ) {
   const startsAt = new Date(input.startsAt);
@@ -575,7 +575,53 @@ export async function createBooking(input: CreateBookingInput) {
 export async function createAdminBookingForSalon(salonId: string, input: CreateAdminBookingInput) {
   const salon = await getSalonByIdOrThrow(salonId);
   const service = await getServiceForSalonOrThrow(input.serviceId, salon.id);
-  return insertCustomerAndBooking(salon, service, input, 'confirmed');
+
+  const startsAt = new Date(input.startsAt);
+
+  if (Number.isNaN(startsAt.getTime())) {
+    throw new HttpError(400, 'startsAt must be a valid ISO datetime');
+  }
+
+  const endsAt = addMinutes(startsAt, service.durationMinutes);
+  const occupiedUntil = addMinutes(endsAt, salon.bookingBufferMinutes);
+  const bookingDate = getIsoDateInTimeZone(startsAt, salon.timezone);
+  const { startsAt: dayStart, endsAt: dayEnd } = readDateWindow(bookingDate, salon.timezone);
+
+  const existingBookings = await listExistingBookingsInRange(salon.id, dayStart, dayEnd);
+
+  if (isSlotBlockedByBookings(startsAt, occupiedUntil, existingBookings, salon.bookingBufferMinutes)) {
+    throw new HttpError(409, 'The selected time slot conflicts with an existing booking');
+  }
+
+  const [customer] = await db
+    .insert(customers)
+    .values({
+      salonId: salon.id,
+      firstName: input.customer.firstName,
+      lastName: input.customer.lastName,
+      email: input.customer.email ?? null,
+      phone: input.customer.phone ?? null,
+      notes: null,
+    })
+    .returning({ id: customers.id });
+
+  const [booking] = await db
+    .insert(bookings)
+    .values({
+      salonId: salon.id,
+      customerId: customer.id,
+      serviceId: service.id,
+      status: 'confirmed',
+      startsAt,
+      endsAt,
+      priceAmount: service.priceAmount,
+      currency: service.currency,
+      customerNotes: input.customerNotes,
+      internalNotes: null,
+    })
+    .returning({ id: bookings.id });
+
+  return getBookingDetailForSalon(salonId, booking.id);
 }
 
 export async function listBookingsForSalon(salonId: string, query: AdminBookingsQueryInput) {

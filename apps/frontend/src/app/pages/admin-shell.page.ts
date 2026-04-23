@@ -2,7 +2,6 @@ import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NgFor, NgIf } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
-import { ButtonModule } from 'primeng/button';
 
 import { AdminSetupApiService } from '../core/admin-setup-api.service';
 import type { AdminBookingItem, OpeningHourSlot, SalonProfile, ServiceItem, TimeOffBlock } from '../core/admin-setup.types';
@@ -118,484 +117,403 @@ function formatMoney(amount: number, currency: string): string {
 @Component({
   selector: 'app-admin-shell-page',
   standalone: true,
-  imports: [FormsModule, NgFor, NgIf, RouterLink, ButtonModule],
+  imports: [FormsModule, NgFor, NgIf, RouterLink],
   template: `
-    <!-- Top navigation bar â€” gradient -->
-    <header class="sticky top-0 z-30 bg-gradient-to-r from-violet-700 to-fuchsia-600 shadow-lg shadow-violet-500/20">
-      <div class="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center gap-3">
-          <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20 text-white ring-1 ring-white/30">
-            <i class="pi pi-sparkles text-sm"></i>
-          </div>
-          <span class="text-sm font-bold tracking-wide text-white">{{ salon()?.name || 'Sapphirix' }}</span>
+    <!-- FadeFlow admin shell -->
+    <div style="min-height:100vh;background:var(--ff-bg);">
+
+    <!-- Top nav -->
+    <header style="position:sticky;top:0;z-index:30;background:var(--ff-surface);border-bottom:1px solid var(--ff-line);">
+      <div style="max-width:1280px;margin:0 auto;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+        <!-- Logo + salon name -->
+        <div style="display:flex;align-items:center;gap:12px;">
+          <img src="assets/images/Logo-textside.png" alt="FadeFlow" style="height:26px;object-fit:contain;" />
+          <span style="width:1px;height:18px;background:var(--ff-line);display:inline-block;"></span>
+          <span style="font-size:13px;color:var(--ff-ink-muted);">{{ salon()?.name }}</span>
         </div>
-
-        <nav class="hidden items-center gap-1 rounded-full bg-white/10 p-1 md:flex">
-          <a
-            routerLink="/admin"
-            class="rounded-full px-3 py-1.5 text-sm font-medium transition-colors"
-            [class.bg-white]="isActive('/admin')"
-            [class.text-violet-700]="isActive('/admin')"
-            [class.text-white]="!isActive('/admin')"
-          >
-            Bookings
-          </a>
-          <a
-            routerLink="/admin/settings"
-            class="rounded-full px-3 py-1.5 text-sm font-medium transition-colors"
-            [class.bg-white]="isActive('/admin/settings')"
-            [class.text-violet-700]="isActive('/admin/settings')"
-            [class.text-white]="!isActive('/admin/settings')"
-          >
-            Settings
-          </a>
+        <!-- Tab nav -->
+        <nav style="display:flex;gap:2px;background:var(--ff-bg);border-radius:var(--ff-r-md);padding:3px;border:1px solid var(--ff-line);">
+          <a routerLink="/admin"
+            style="padding:5px 14px;border-radius:4px;font-size:13px;font-weight:500;text-decoration:none;transition:all 0.15s;"
+            [style.background]="isActive('/admin') ? 'var(--ff-ink)' : 'transparent'"
+            [style.color]="isActive('/admin') ? '#fff' : 'var(--ff-ink-muted)'">Termine</a>
+          <a routerLink="/admin/settings"
+            style="padding:5px 14px;border-radius:4px;font-size:13px;font-weight:500;text-decoration:none;transition:all 0.15s;"
+            [style.background]="isActive('/admin/settings') ? 'var(--ff-ink)' : 'transparent'"
+            [style.color]="isActive('/admin/settings') ? '#fff' : 'var(--ff-ink-muted)'">Einstellungen</a>
         </nav>
-
-        <div class="flex items-center gap-1" *ngIf="authService.adminProfile() as profile">
-          <span class="mr-2 hidden text-sm text-white/70 sm:inline">{{ profile.admin.firstName }} {{ profile.admin.lastName }}</span>
-          <button type="button" (click)="reload()" title="Reload data"
-            class="flex h-8 w-8 items-center justify-center rounded-lg text-white/80 transition-colors hover:bg-white/15 hover:text-white">
-            <i class="pi pi-refresh text-sm"></i>
+        <!-- User + actions -->
+        <div *ngIf="authService.adminProfile() as profile" style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:13px;color:var(--ff-ink-muted);">{{ profile.admin.firstName }} {{ profile.admin.lastName }}</span>
+          <button type="button" (click)="reload()" title="Aktualisieren"
+            style="width:32px;height:32px;border-radius:50%;border:1px solid var(--ff-line);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ff-ink-muted);">
+            <i class="pi pi-refresh" style="font-size:13px;"></i>
           </button>
-          <button type="button" (click)="logout()" title="Sign out"
-            class="flex h-8 w-8 items-center justify-center rounded-lg text-white/80 transition-colors hover:bg-white/15 hover:text-white">
-            <i class="pi pi-sign-out text-sm"></i>
+          <button type="button" (click)="logout()" title="Abmelden"
+            style="width:32px;height:32px;border-radius:50%;border:1px solid var(--ff-line);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ff-ink-muted);">
+            <i class="pi pi-sign-out" style="font-size:13px;"></i>
           </button>
         </div>
       </div>
     </header>
 
-    <main class="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-      <!-- Status / Error banners -->
-      <div *ngIf="statusMessage()" class="mb-5 flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3.5 text-sm text-emerald-800 border-l-4 border-l-emerald-500">
-        <i class="pi pi-check-circle shrink-0 text-emerald-600"></i>
-        <span>{{ statusMessage() }}</span>
-      </div>
+    <!-- Status banners -->
+    <div *ngIf="statusMessage()" style="background:var(--ff-ok-soft);border-bottom:1px solid var(--ff-ok);padding:10px 24px;font-size:13px;color:var(--ff-ok);display:flex;align-items:center;gap:8px;">
+      <i class="pi pi-check-circle"></i> {{ statusMessage() }}
+    </div>
+    <div *ngIf="loadError()" style="background:var(--ff-bad-soft);border-bottom:1px solid var(--ff-bad);padding:10px 24px;font-size:13px;color:var(--ff-bad);display:flex;align-items:center;gap:8px;">
+      <i class="pi pi-times-circle"></i> {{ loadError() }}
+    </div>
 
-      <div *ngIf="loadError()" class="mb-5 flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm text-red-800 border-l-4 border-l-red-500">
-        <i class="pi pi-times-circle shrink-0 text-red-500"></i>
-        <span>{{ loadError() }}</span>
-      </div>
+    <!-- Loading -->
+    <div *ngIf="loading()" style="display:flex;align-items:center;justify-content:center;padding:96px 0;color:var(--ff-ink-muted);gap:12px;">
+      <i class="pi pi-spin pi-spinner" style="font-size:20px;"></i>
+      Einstellungen werden geladen…
+    </div>
 
-      <!-- Loading state -->
-      <div *ngIf="loading()" class="flex flex-col items-center justify-center py-24 text-gray-400">
-        <i class="pi pi-spin pi-spinner text-3xl mb-3 text-violet-500"></i>
-        <p class="text-sm">Loading salon setupâ€¦</p>
-      </div>
+    <!-- Layout: sidebar + content -->
+    <div *ngIf="!loading()" style="display:flex;max-width:1280px;margin:0 auto;padding:32px 24px;gap:32px;align-items:flex-start;">
 
-      <!-- Content -->
-      <div *ngIf="!loading()" class="space-y-6">
+      <!-- Sidebar -->
+      <aside style="width:200px;flex-shrink:0;">
+        <nav style="background:var(--ff-surface);border:1px solid var(--ff-line);border-radius:var(--ff-r-lg);overflow:hidden;">
+          <button type="button" *ngFor="let item of sidebarSections" (click)="activeSection.set(item.id)"
+            style="width:100%;text-align:left;padding:12px 16px;font-size:13px;font-weight:500;cursor:pointer;border:none;border-top:0;border-right:0;border-bottom:0;border-left:3px solid transparent;transition:all 0.12s;display:flex;align-items:center;gap:10px;background:transparent;"
+            [style.background]="activeSection() === item.id ? 'var(--ff-accent-soft)' : 'transparent'"
+            [style.color]="activeSection() === item.id ? 'var(--ff-accent-text)' : 'var(--ff-ink)'"
+            [style.border-left-color]="activeSection() === item.id ? 'var(--ff-accent)' : 'transparent'">
+            <i [class]="'pi ' + item.icon" style="font-size:13px;"></i>
+            {{ item.label }}
+          </button>
+        </nav>
 
-        <!-- Gradient info cards -->
-        <div class="grid gap-4 sm:grid-cols-2" *ngIf="authService.adminProfile() as profile">
-          <div class="rounded-2xl bg-gradient-to-br from-violet-600 via-violet-600 to-fuchsia-600 p-5 shadow-lg shadow-violet-500/20 text-white">
-            <div class="flex items-center gap-3 mb-4">
-              <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 ring-1 ring-white/30">
-                <i class="pi pi-user text-sm"></i>
-              </div>
-              <p class="text-xs font-semibold uppercase tracking-widest text-white/60">Admin</p>
-            </div>
-            <h2 class="text-xl font-bold text-white">{{ profile.admin.firstName }} {{ profile.admin.lastName }}</h2>
-            <p class="mt-1 text-sm text-white/70">{{ profile.admin.email }}</p>
-          </div>
-
-          <div class="rounded-2xl bg-gradient-to-br from-fuchsia-600 via-fuchsia-500 to-violet-600 p-5 shadow-lg shadow-fuchsia-500/20 text-white">
-            <div class="flex items-center gap-3 mb-4">
-              <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 ring-1 ring-white/30">
-                <i class="pi pi-building text-sm"></i>
-              </div>
-              <p class="text-xs font-semibold uppercase tracking-widest text-white/60">Salon</p>
-            </div>
-            <h2 class="text-xl font-bold text-white">{{ salon()?.name || profile.salon.name }}</h2>
-            <p class="mt-1 flex items-center gap-2 text-sm text-white/70">
-              <span class="inline-flex items-center rounded-lg bg-white/15 px-2 py-0.5 text-xs font-mono text-white/90 ring-1 ring-white/20">{{ salon()?.slug || profile.salon.slug }}</span>
-              <span>{{ salon()?.timezone || profile.salon.timezone }}</span>
-            </p>
-          </div>
+        <!-- Booking URL -->
+        <div *ngIf="salon()" style="margin-top:16px;background:var(--ff-surface);border:1px solid var(--ff-line);border-radius:var(--ff-r-lg);padding:14px;">
+          <p style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.12em;color:var(--ff-ink-muted);margin:0 0 6px 0;">Buchungs-Link</p>
+          <p class="ff-mono" style="font-size:10px;color:var(--ff-ink-muted);word-break:break-all;line-height:1.4;margin:0;">/b/{{ salon()!.slug }}</p>
         </div>
+      </aside>
 
-        <!-- Salon Profile + Logo -->
-        <div class="grid gap-6 xl:grid-cols-[1fr_320px]">
-          <!-- Profile form -->
-          <div class="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-900/5">
-            <div class="h-0.5 bg-gradient-to-r from-violet-500 to-fuchsia-500"></div>
-            <form (ngSubmit)="saveSalonProfile()">
-              <div class="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-                <div>
-                  <h2 class="text-base font-semibold text-gray-900">Salon Profile</h2>
-                  <p class="mt-0.5 text-sm text-gray-500">Business details visible to customers</p>
-                </div>
-                <p-button type="submit" label="Save" icon="pi pi-check" size="small" [loading]="savingProfile()"></p-button>
-              </div>
+      <!-- Main content -->
+      <main style="flex:1;min-width:0;">
 
-              <div class="grid gap-4 p-6 sm:grid-cols-2">
-                <div>
-                  <label class="mb-1.5 block text-sm font-medium text-gray-700">Salon name</label>
-                  <input [(ngModel)]="salonForm.name" name="name" required
-                    class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-all focus:border-violet-500 focus:bg-white focus:ring-3 focus:ring-violet-500/15" />
-                </div>
-
-                <div>
-                  <label class="mb-1.5 block text-sm font-medium text-gray-700">Email</label>
-                  <input [(ngModel)]="salonForm.email" name="email" type="email"
-                    class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-all focus:border-violet-500 focus:bg-white focus:ring-3 focus:ring-violet-500/15" />
-                </div>
-
-                <div>
-                  <label class="mb-1.5 block text-sm font-medium text-gray-700">Phone</label>
-                  <input [(ngModel)]="salonForm.phone" name="phone"
-                    class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-all focus:border-violet-500 focus:bg-white focus:ring-3 focus:ring-violet-500/15" />
-                </div>
-
-                <div>
-                  <label class="mb-1.5 block text-sm font-medium text-gray-700">Timezone</label>
-                  <input [(ngModel)]="salonForm.timezone" name="timezone" required
-                    class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-all focus:border-violet-500 focus:bg-white focus:ring-3 focus:ring-violet-500/15" />
-                </div>
-
-                <div>
-                  <label class="mb-1.5 block text-sm font-medium text-gray-700">Booking buffer (min)</label>
-                  <input [(ngModel)]="salonForm.bookingBufferMinutes" name="bookingBufferMinutes" type="number" min="0" max="120" step="5"
-                    class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-900 outline-none transition-all focus:border-violet-500 focus:bg-white focus:ring-3 focus:ring-violet-500/15" />
-                </div>
-
-                <div class="sm:col-span-2">
-                  <label class="mb-1.5 block text-sm font-medium text-gray-700">Address line 1</label>
-                  <input [(ngModel)]="salonForm.addressLine1" name="addressLine1"
-                    class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-all focus:border-violet-500 focus:bg-white focus:ring-3 focus:ring-violet-500/15" />
-                </div>
-
-                <div class="sm:col-span-2">
-                  <label class="mb-1.5 block text-sm font-medium text-gray-700">Address line 2</label>
-                  <input [(ngModel)]="salonForm.addressLine2" name="addressLine2"
-                    class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-all focus:border-violet-500 focus:bg-white focus:ring-3 focus:ring-violet-500/15" />
-                </div>
-
-                <div>
-                  <label class="mb-1.5 block text-sm font-medium text-gray-700">Postal code</label>
-                  <input [(ngModel)]="salonForm.postalCode" name="postalCode"
-                    class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-all focus:border-violet-500 focus:bg-white focus:ring-3 focus:ring-violet-500/15" />
-                </div>
-
-                <div>
-                  <label class="mb-1.5 block text-sm font-medium text-gray-700">City</label>
-                  <input [(ngModel)]="salonForm.city" name="city"
-                    class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-all focus:border-violet-500 focus:bg-white focus:ring-3 focus:ring-violet-500/15" />
-                </div>
-
-                <div>
-                  <label class="mb-1.5 block text-sm font-medium text-gray-700">Country code</label>
-                  <input [(ngModel)]="salonForm.countryCode" name="countryCode" maxlength="2"
-                    class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm uppercase text-gray-900 placeholder:text-gray-400 outline-none transition-all focus:border-violet-500 focus:bg-white focus:ring-3 focus:ring-violet-500/15" />
-                </div>
-
-                <div class="sm:col-span-2">
-                  <label class="mb-1.5 block text-sm font-medium text-gray-700">Description</label>
-                  <textarea [(ngModel)]="salonForm.description" name="description" rows="3"
-                    class="w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-all focus:border-violet-500 focus:bg-white focus:ring-3 focus:ring-violet-500/15"></textarea>
-                </div>
-              </div>
-            </form>
+        <!-- SALON-PROFIL -->
+        <section *ngIf="activeSection() === 'profil'">
+          <div style="margin-bottom:24px;">
+            <p class="ff-mono" style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.2em;color:var(--ff-ink-muted);margin:0 0 4px 0;">SALON-PROFIL</p>
+            <h2 class="ff-display" style="font-size:24px;color:var(--ff-ink);margin:0;">Salon-Einstellungen</h2>
           </div>
 
-          <!-- Logo upload -->
-          <div class="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-900/5">
-            <div class="h-0.5 bg-gradient-to-r from-violet-500 to-fuchsia-500"></div>
-            <div class="border-b border-gray-100 px-6 py-4">
-              <h2 class="text-base font-semibold text-gray-900">Logo</h2>
-              <p class="mt-0.5 text-sm text-gray-500">JPG, PNG, or WEBP Â· max 5 MB</p>
+          <div style="display:grid;grid-template-columns:1fr 280px;gap:24px;align-items:flex-start;">
+            <!-- Profile form -->
+            <div style="background:var(--ff-surface);border:1px solid var(--ff-line);border-radius:var(--ff-r-lg);overflow:hidden;">
+              <div style="padding:16px 24px;border-bottom:1px solid var(--ff-line);display:flex;align-items:center;justify-content:space-between;">
+                <div>
+                  <h3 style="font-size:15px;font-weight:600;color:var(--ff-ink);margin:0;">Profil</h3>
+                  <p style="font-size:12px;color:var(--ff-ink-muted);margin:2px 0 0 0;">Für Kunden sichtbare Angaben</p>
+                </div>
+                <button type="submit" form="salon-form"
+                  style="padding:8px 16px;background:var(--ff-ink);color:#fff;border:none;border-radius:var(--ff-r-md);font-size:13px;font-weight:500;cursor:pointer;">
+                  <i class="pi pi-spin pi-spinner" *ngIf="savingProfile()" style="margin-right:6px;"></i>Speichern
+                </button>
+              </div>
+              <form id="salon-form" (ngSubmit)="saveSalonProfile()" style="padding:24px;display:grid;gap:16px;grid-template-columns:1fr 1fr;">
+                <div>
+                  <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Salon-Name</label>
+                  <input [(ngModel)]="salonForm.name" name="name" required class="ff-input" style="width:100%;box-sizing:border-box;" />
+                </div>
+                <div>
+                  <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">E-Mail</label>
+                  <input [(ngModel)]="salonForm.email" name="email" type="email" class="ff-input" style="width:100%;box-sizing:border-box;" />
+                </div>
+                <div>
+                  <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Telefon</label>
+                  <input [(ngModel)]="salonForm.phone" name="phone" class="ff-input" style="width:100%;box-sizing:border-box;" />
+                </div>
+                <div>
+                  <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Zeitzone</label>
+                  <input [(ngModel)]="salonForm.timezone" name="timezone" required class="ff-input" style="width:100%;box-sizing:border-box;" />
+                </div>
+                <div style="grid-column:span 2;">
+                  <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Adresse Zeile 1</label>
+                  <input [(ngModel)]="salonForm.addressLine1" name="addressLine1" class="ff-input" style="width:100%;box-sizing:border-box;" />
+                </div>
+                <div style="grid-column:span 2;">
+                  <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Adresse Zeile 2</label>
+                  <input [(ngModel)]="salonForm.addressLine2" name="addressLine2" class="ff-input" style="width:100%;box-sizing:border-box;" />
+                </div>
+                <div>
+                  <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Postleitzahl</label>
+                  <input [(ngModel)]="salonForm.postalCode" name="postalCode" class="ff-input" style="width:100%;box-sizing:border-box;" />
+                </div>
+                <div>
+                  <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Ort</label>
+                  <input [(ngModel)]="salonForm.city" name="city" class="ff-input" style="width:100%;box-sizing:border-box;" />
+                </div>
+                <div>
+                  <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Ländercode</label>
+                  <input [(ngModel)]="salonForm.countryCode" name="countryCode" maxlength="2" class="ff-input" style="width:100%;box-sizing:border-box;text-transform:uppercase;" />
+                </div>
+                <div style="grid-column:span 2;">
+                  <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Beschreibung</label>
+                  <textarea [(ngModel)]="salonForm.description" name="description" rows="3" class="ff-input" style="width:100%;box-sizing:border-box;resize:vertical;"></textarea>
+                </div>
+              </form>
             </div>
 
-            <div class="p-6">
-              <div class="flex items-center justify-center rounded-xl border-2 border-dashed border-violet-200 bg-violet-50/40 p-4 transition-colors hover:border-violet-300" style="min-height: 160px">
-                <img *ngIf="logoUrl()" [src]="logoUrl()!" alt="Salon logo" class="max-h-36 rounded-xl object-contain" />
-                <div *ngIf="!logoUrl()" class="text-center">
-                  <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-violet-100 text-violet-500">
-                    <i class="pi pi-image text-xl"></i>
+            <!-- Logo upload -->
+            <div style="background:var(--ff-surface);border:1px solid var(--ff-line);border-radius:var(--ff-r-lg);overflow:hidden;">
+              <div style="padding:16px 20px;border-bottom:1px solid var(--ff-line);">
+                <h3 style="font-size:14px;font-weight:600;color:var(--ff-ink);margin:0;">Logo</h3>
+                <p style="font-size:12px;color:var(--ff-ink-muted);margin:2px 0 0 0;">JPG, PNG oder WEBP · max. 5 MB</p>
+              </div>
+              <div style="padding:20px;">
+                <div style="min-height:120px;border:2px dashed var(--ff-line-strong);border-radius:var(--ff-r-md);display:flex;align-items:center;justify-content:center;background:var(--ff-bg-muted);">
+                  <img *ngIf="logoUrl()" [src]="logoUrl()!" alt="Salon-Logo" style="max-height:100px;border-radius:6px;object-fit:contain;" />
+                  <div *ngIf="!logoUrl()" style="text-align:center;color:var(--ff-ink-faint);">
+                    <i class="pi pi-image" style="font-size:24px;display:block;margin-bottom:8px;"></i>
+                    <p style="font-size:12px;margin:0;">Noch kein Logo</p>
                   </div>
-                  <p class="text-xs text-gray-400">No logo uploaded yet</p>
                 </div>
+                <label style="display:block;margin-top:14px;">
+                  <span style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Bild wählen</span>
+                  <input type="file" accept="image/png,image/jpeg,image/webp" (change)="uploadLogo($event)" style="font-size:12px;color:var(--ff-ink-muted);width:100%;" />
+                </label>
+                <p *ngIf="uploadingLogo()" style="margin-top:10px;font-size:12px;color:var(--ff-accent);display:flex;align-items:center;gap:6px;margin-bottom:0;">
+                  <i class="pi pi-spin pi-spinner"></i> Wird hochgeladen…
+                </p>
               </div>
-
-              <label class="mt-4 block">
-                <span class="mb-1.5 block text-sm font-medium text-gray-700">Choose image</span>
-                <input type="file" accept="image/png,image/jpeg,image/webp" (change)="uploadLogo($event)"
-                  class="block w-full text-sm text-gray-500
-                  file:mr-3 file:rounded-lg file:border-0 file:bg-gradient-to-r file:from-violet-600 file:to-fuchsia-600 file:px-3 file:py-2
-                  file:text-sm file:font-medium file:text-white file:cursor-pointer
-                  hover:file:brightness-110 file:transition-all file:shadow-sm file:shadow-violet-500/20" />
-              </label>
-
-              <p *ngIf="uploadingLogo()" class="mt-3 flex items-center gap-2 text-sm text-violet-600">
-                <i class="pi pi-spin pi-spinner"></i> Uploadingâ€¦
-              </p>
             </div>
           </div>
-        </div>
+        </section>
 
-        <!-- Upcoming bookings -->
-        <div class="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-900/5">
-          <div class="h-0.5 bg-gradient-to-r from-violet-500 to-fuchsia-500"></div>
-          <div class="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-            <div>
-              <h2 class="text-base font-semibold text-gray-900">Upcoming Bookings</h2>
-              <p class="mt-0.5 text-sm text-gray-500">New public booking requests appear here right away</p>
-            </div>
-            <span class="rounded-full bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700 ring-1 ring-violet-100">
-              {{ upcomingBookings().length }} entries
-            </span>
-          </div>
-
-          <div *ngIf="upcomingBookings().length > 0" class="divide-y divide-gray-100">
-            <article *ngFor="let booking of upcomingBookings()" class="flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <div class="min-w-0">
-                <div class="flex items-center gap-2">
-                  <h3 class="truncate text-sm font-semibold text-gray-900">
-                    {{ booking.customer.firstName }} {{ booking.customer.lastName }}
-                  </h3>
-                  <span
-                    class="rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide"
-                    [class.bg-amber-100]="booking.status === 'pending'"
-                    [class.text-amber-700]="booking.status === 'pending'"
-                    [class.bg-emerald-100]="booking.status === 'confirmed'"
-                    [class.text-emerald-700]="booking.status === 'confirmed'"
-                    [class.bg-gray-100]="booking.status !== 'pending' && booking.status !== 'confirmed'"
-                    [class.text-gray-600]="booking.status !== 'pending' && booking.status !== 'confirmed'"
-                  >
-                    {{ booking.status }}
-                  </span>
-                </div>
-                <p class="mt-1 text-sm text-gray-500">{{ booking.service.name }}</p>
-                <p class="mt-1 text-xs text-gray-400">{{ booking.customer.email || 'No email' }} · {{ booking.customer.phone || 'No phone' }}</p>
-              </div>
-
-              <div class="shrink-0 text-left sm:text-right">
-                <p class="text-sm font-semibold text-gray-900">{{ formatDateTimeValue(booking.startsAt) }}</p>
-                <p class="mt-1 text-xs text-gray-400">{{ formatMoneyValue(booking.priceAmount, booking.currency) }}</p>
-              </div>
-            </article>
-          </div>
-
-          <div *ngIf="upcomingBookings().length === 0" class="px-6 py-10 text-center">
-            <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100 text-gray-400">
-              <i class="pi pi-calendar text-xl"></i>
-            </div>
-            <p class="text-sm text-gray-500">No upcoming bookings yet.</p>
-          </div>
-        </div>
-
-        <!-- Services -->
-        <div class="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-900/5">
-          <div class="h-0.5 bg-gradient-to-r from-violet-500 to-fuchsia-500"></div>
-          <div class="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-            <div>
-              <h2 class="text-base font-semibold text-gray-900">Services</h2>
-              <p class="mt-0.5 text-sm text-gray-500">Bookable offerings for your customers</p>
-            </div>
-            <p-button label="New service" icon="pi pi-plus" severity="secondary" [outlined]="true" size="small" (onClick)="resetServiceForm()"></p-button>
+        <!-- LEISTUNGEN -->
+        <section *ngIf="activeSection() === 'leistungen'">
+          <div style="margin-bottom:24px;">
+            <p class="ff-mono" style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.2em;color:var(--ff-ink-muted);margin:0 0 4px 0;">LEISTUNGEN</p>
+            <h2 class="ff-display" style="font-size:24px;color:var(--ff-ink);margin:0;">Angebote verwalten</h2>
           </div>
 
           <!-- Service form -->
-          <form class="border-b border-gray-100 bg-gradient-to-b from-violet-50/40 to-transparent p-6" (ngSubmit)="saveService()">
-            <div class="grid gap-4 sm:grid-cols-2">
-              <div class="sm:col-span-2">
-                <label class="mb-1.5 block text-sm font-medium text-gray-700">Service name</label>
-                <input [(ngModel)]="serviceForm.name" name="serviceName" required
-                  class="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-all focus:border-violet-500 focus:ring-3 focus:ring-violet-500/15" />
-              </div>
-
-              <div class="sm:col-span-2">
-                <label class="mb-1.5 block text-sm font-medium text-gray-700">Description</label>
-                <textarea [(ngModel)]="serviceForm.description" name="serviceDescription" rows="2"
-                  class="w-full resize-none rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-all focus:border-violet-500 focus:ring-3 focus:ring-violet-500/15"></textarea>
-              </div>
-
-              <div>
-                <label class="mb-1.5 block text-sm font-medium text-gray-700">Duration (min)</label>
-                <input [(ngModel)]="serviceForm.durationMinutes" name="durationMinutes" type="number" min="5" step="5" required
-                  class="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 outline-none transition-all focus:border-violet-500 focus:ring-3 focus:ring-violet-500/15" />
-              </div>
-
-              <div>
-                <label class="mb-1.5 block text-sm font-medium text-gray-700">Price (cents)</label>
-                <input [(ngModel)]="serviceForm.priceAmount" name="priceAmount" type="number" min="0" step="100" required
-                  class="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 outline-none transition-all focus:border-violet-500 focus:ring-3 focus:ring-violet-500/15" />
-              </div>
-
-              <div>
-                <label class="mb-1.5 block text-sm font-medium text-gray-700">Currency</label>
-                <input [(ngModel)]="serviceForm.currency" name="currency" maxlength="3"
-                  class="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm uppercase text-gray-900 outline-none transition-all focus:border-violet-500 focus:ring-3 focus:ring-violet-500/15" />
-              </div>
-
-              <div>
-                <label class="mb-1.5 block text-sm font-medium text-gray-700">Sort order</label>
-                <input [(ngModel)]="serviceForm.sortOrder" name="sortOrder" type="number" min="0" step="1"
-                  class="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 outline-none transition-all focus:border-violet-500 focus:ring-3 focus:ring-violet-500/15" />
-              </div>
+          <div style="background:var(--ff-surface);border:1px solid var(--ff-line);border-radius:var(--ff-r-lg);margin-bottom:16px;overflow:hidden;">
+            <div style="padding:16px 24px;border-bottom:1px solid var(--ff-line);display:flex;align-items:center;justify-content:space-between;">
+              <h3 style="font-size:14px;font-weight:600;color:var(--ff-ink);margin:0;">{{ editingServiceId() ? 'Leistung bearbeiten' : 'Neue Leistung' }}</h3>
+              <button *ngIf="editingServiceId()" type="button" (click)="resetServiceForm()"
+                style="font-size:12px;color:var(--ff-ink-muted);background:none;border:none;cursor:pointer;padding:4px 8px;">Abbrechen</button>
             </div>
-
-            <div class="mt-4 flex items-center gap-3">
-              <p-button type="submit" [label]="editingServiceId() ? 'Update' : 'Create'" icon="pi pi-check" size="small" [loading]="savingService()"></p-button>
-              <p-button *ngIf="editingServiceId()" label="Cancel" severity="secondary" [text]="true" size="small" (onClick)="resetServiceForm()"></p-button>
-            </div>
-          </form>
-
-          <!-- Service list -->
-          <div class="divide-y divide-gray-100">
-            <article *ngFor="let service of services()" class="flex items-center gap-4 px-6 py-4">
-              <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
-                <i class="pi pi-tag text-sm"></i>
+            <form (ngSubmit)="saveService()" style="padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+              <div style="grid-column:span 2;">
+                <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Name</label>
+                <input [(ngModel)]="serviceForm.name" name="serviceName" required class="ff-input" style="width:100%;box-sizing:border-box;" />
               </div>
-              <div class="min-w-0 flex-1">
-                <h3 class="text-sm font-semibold text-gray-900">{{ service.name }}</h3>
-                <p class="mt-0.5 truncate text-xs text-gray-500">{{ service.description || 'No description' }}</p>
+              <div style="grid-column:span 2;">
+                <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Beschreibung</label>
+                <textarea [(ngModel)]="serviceForm.description" name="serviceDescription" rows="2" class="ff-input" style="width:100%;box-sizing:border-box;resize:vertical;"></textarea>
               </div>
-              <div class="flex shrink-0 items-center gap-2">
-                <span class="rounded-full bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-700 ring-1 ring-violet-100">
-                  {{ service.durationMinutes }} min
-                </span>
-                <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-100">
-                  {{ formatMoneyValue(service.priceAmount, service.currency) }}
-                </span>
-                <p-button icon="pi pi-pencil" severity="secondary" [text]="true" [rounded]="true" size="small" (onClick)="startEditingService(service)"></p-button>
-                <p-button icon="pi pi-trash" severity="danger" [text]="true" [rounded]="true" size="small" (onClick)="removeService(service.id)"></p-button>
+              <div>
+                <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Dauer (Min)</label>
+                <input [(ngModel)]="serviceForm.durationMinutes" name="durationMinutes" type="number" min="5" step="5" required class="ff-input" style="width:100%;box-sizing:border-box;" />
               </div>
-            </article>
-
-            <div *ngIf="services().length === 0" class="px-6 py-12 text-center">
-              <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100 text-gray-400">
-                <i class="pi pi-box text-xl"></i>
+              <div>
+                <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Preis (Rappen)</label>
+                <input [(ngModel)]="serviceForm.priceAmount" name="priceAmount" type="number" min="0" step="100" required class="ff-input" style="width:100%;box-sizing:border-box;" />
               </div>
-              <p class="text-sm text-gray-500">No services yet. Add your first offering above.</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Opening Hours -->
-        <div class="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-900/5">
-          <div class="h-0.5 bg-gradient-to-r from-violet-500 to-fuchsia-500"></div>
-          <div class="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-            <div>
-              <h2 class="text-base font-semibold text-gray-900">Opening Hours</h2>
-              <p class="mt-0.5 text-sm text-gray-500">Weekly schedule with split shifts</p>
-            </div>
-            <p-button label="Save hours" icon="pi pi-check" size="small" [loading]="savingOpeningHours()" (onClick)="saveOpeningHours()"></p-button>
-          </div>
-
-          <div class="divide-y divide-gray-100">
-            <article *ngFor="let day of openingDays; let dayIndex = index" class="px-6 py-4">
-              <div class="flex items-center justify-between gap-4">
-                <div class="flex items-center gap-3 min-w-[9rem]">
-                  <h3 class="text-sm font-semibold text-gray-900">{{ day.label }}</h3>
-                  <span *ngIf="day.slots.length === 0"
-                    class="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-500">
-                    Closed
-                  </span>
-                </div>
-
-                <div class="flex flex-1 flex-wrap items-center gap-2">
-                  <span *ngFor="let slot of day.slots; let slotIndex = index"
-                    class="inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-3 py-1 text-xs font-medium text-violet-700 ring-1 ring-violet-100">
-                    <i class="pi pi-clock text-[10px]"></i>
-                    {{ slot.startTime }} â€“ {{ slot.endTime }}
-                    <button type="button"
-                      class="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full text-violet-400 transition-colors hover:bg-violet-200 hover:text-violet-700"
-                      (click)="removeOpeningSlot(dayIndex, slotIndex)">
-                      <i class="pi pi-times text-[8px]"></i>
-                    </button>
-                  </span>
-                </div>
-
-                <button type="button"
-                  class="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:border-violet-300 hover:bg-violet-50 hover:text-violet-700"
-                  (click)="addOpeningSlot(dayIndex)"
-                  *ngIf="day.slots.length < 3">
-                  <i class="pi pi-plus text-[10px]"></i> Add shift
+              <div>
+                <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Währung</label>
+                <input [(ngModel)]="serviceForm.currency" name="currency" maxlength="3" class="ff-input" style="width:100%;box-sizing:border-box;text-transform:uppercase;" />
+              </div>
+              <div>
+                <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Reihenfolge</label>
+                <input [(ngModel)]="serviceForm.sortOrder" name="sortOrder" type="number" min="0" step="1" class="ff-input" style="width:100%;box-sizing:border-box;" />
+              </div>
+              <div style="grid-column:span 2;">
+                <button type="submit"
+                  style="padding:10px 20px;background:var(--ff-accent);color:#fff;border:none;border-radius:var(--ff-r-md);font-size:13px;font-weight:500;cursor:pointer;">
+                  <i class="pi pi-spin pi-spinner" *ngIf="savingService()" style="margin-right:6px;"></i>
+                  {{ editingServiceId() ? 'Aktualisieren' : 'Erstellen' }}
                 </button>
               </div>
+            </form>
+          </div>
 
-              <!-- Editable time inputs appear when a slot exists (below the pill row) -->
-              <div *ngIf="day.slots.length > 0" class="mt-3 space-y-2">
+          <!-- Service list -->
+          <div style="background:var(--ff-surface);border:1px solid var(--ff-line);border-radius:var(--ff-r-lg);overflow:hidden;">
+            <div style="padding:16px 24px;border-bottom:1px solid var(--ff-line);">
+              <h3 style="font-size:14px;font-weight:600;color:var(--ff-ink);margin:0;">Leistungen ({{ services().length }})</h3>
+            </div>
+            <article *ngFor="let service of services()"
+              style="display:flex;align-items:center;gap:16px;padding:14px 24px;border-bottom:1px solid var(--ff-line);">
+              <div style="flex:1;min-width:0;">
+                <p style="font-size:14px;font-weight:600;color:var(--ff-ink);margin:0;">{{ service.name }}</p>
+                <p style="font-size:12px;color:var(--ff-ink-muted);margin:2px 0 0 0;">{{ service.description || 'Keine Beschreibung' }}</p>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                <span class="ff-mono" style="font-size:11px;background:var(--ff-bg-muted);padding:3px 8px;border-radius:4px;color:var(--ff-ink-muted);">{{ service.durationMinutes }} min</span>
+                <span class="ff-mono" style="font-size:11px;background:var(--ff-ok-soft);padding:3px 8px;border-radius:4px;color:var(--ff-ok);">{{ formatMoneyValue(service.priceAmount, service.currency) }}</span>
+                <button type="button" (click)="startEditingService(service)"
+                  style="padding:6px 10px;border:1px solid var(--ff-line);border-radius:var(--ff-r-sm);background:transparent;cursor:pointer;font-size:12px;color:var(--ff-ink-muted);">
+                  <i class="pi pi-pencil"></i>
+                </button>
+                <button type="button" (click)="removeService(service.id)"
+                  style="padding:6px 10px;border:1px solid var(--ff-bad);border-radius:var(--ff-r-sm);background:transparent;cursor:pointer;font-size:12px;color:var(--ff-bad);">
+                  <i class="pi pi-trash"></i>
+                </button>
+              </div>
+            </article>
+            <div *ngIf="services().length === 0" style="padding:48px 24px;text-align:center;color:var(--ff-ink-faint);">
+              <i class="pi pi-box" style="font-size:24px;display:block;margin-bottom:10px;"></i>
+              <p style="font-size:13px;margin:0;">Noch keine Leistungen. Erstelle dein erstes Angebot oben.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ÖFFNUNGSZEITEN -->
+        <section *ngIf="activeSection() === 'oeffnungszeiten'">
+          <div style="margin-bottom:24px;">
+            <p class="ff-mono" style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.2em;color:var(--ff-ink-muted);margin:0 0 4px 0;">ÖFFNUNGSZEITEN</p>
+            <h2 class="ff-display" style="font-size:24px;color:var(--ff-ink);margin:0;">Wöchentliche Zeiten</h2>
+          </div>
+
+          <div style="background:var(--ff-surface);border:1px solid var(--ff-line);border-radius:var(--ff-r-lg);overflow:hidden;">
+            <div style="padding:16px 24px;border-bottom:1px solid var(--ff-line);display:flex;align-items:center;justify-content:space-between;">
+              <h3 style="font-size:14px;font-weight:600;color:var(--ff-ink);margin:0;">Wochenplan</h3>
+              <button type="button" (click)="saveOpeningHours()"
+                style="padding:8px 16px;background:var(--ff-ink);color:#fff;border:none;border-radius:var(--ff-r-md);font-size:13px;font-weight:500;cursor:pointer;">
+                <i class="pi pi-spin pi-spinner" *ngIf="savingOpeningHours()" style="margin-right:6px;"></i>Speichern
+              </button>
+            </div>
+            <article *ngFor="let day of openingDays; let dayIndex = index"
+              style="padding:14px 24px;border-bottom:1px solid var(--ff-line);">
+              <div style="display:flex;align-items:center;gap:16px;">
+                <div style="width:120px;flex-shrink:0;">
+                  <span style="font-size:13px;font-weight:600;color:var(--ff-ink);">{{ day.label }}</span>
+                  <span *ngIf="day.slots.length === 0" style="display:block;font-size:11px;color:var(--ff-ink-faint);">Geschlossen</span>
+                </div>
+                <div style="flex:1;display:flex;flex-wrap:wrap;gap:6px;">
+                  <span *ngFor="let slot of day.slots"
+                    style="font-size:11px;background:var(--ff-accent-soft);color:var(--ff-accent-text);padding:3px 10px;border-radius:4px;">
+                    {{ slot.startTime }} – {{ slot.endTime }}
+                  </span>
+                </div>
+                <button *ngIf="day.slots.length < 3" type="button" (click)="addOpeningSlot(dayIndex)"
+                  style="padding:6px 12px;border:1px solid var(--ff-line);border-radius:var(--ff-r-sm);background:transparent;cursor:pointer;font-size:12px;color:var(--ff-ink-muted);white-space:nowrap;flex-shrink:0;">
+                  + Schicht
+                </button>
+              </div>
+              <div *ngIf="day.slots.length > 0" style="margin-top:10px;display:flex;flex-direction:column;gap:8px;">
                 <div *ngFor="let slot of day.slots; let slotIndex = index"
-                  class="flex items-center gap-3">
+                  style="display:flex;align-items:center;gap:10px;">
                   <input [(ngModel)]="slot.startTime" [name]="'start-' + day.weekday + '-' + slotIndex" type="time"
-                    class="w-32 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition-all focus:border-violet-500 focus:bg-white focus:ring-3 focus:ring-violet-500/15" />
-                  <span class="text-xs text-gray-400">to</span>
+                    class="ff-input" style="width:120px;" />
+                  <span style="font-size:12px;color:var(--ff-ink-muted);">bis</span>
                   <input [(ngModel)]="slot.endTime" [name]="'end-' + day.weekday + '-' + slotIndex" type="time"
-                    class="w-32 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition-all focus:border-violet-500 focus:bg-white focus:ring-3 focus:ring-violet-500/15" />
+                    class="ff-input" style="width:120px;" />
+                  <button type="button" (click)="removeOpeningSlot(dayIndex, slotIndex)"
+                    style="padding:6px 10px;border:1px solid var(--ff-bad);border-radius:var(--ff-r-sm);background:transparent;cursor:pointer;font-size:12px;color:var(--ff-bad);">
+                    <i class="pi pi-times"></i>
+                  </button>
                 </div>
               </div>
             </article>
           </div>
-        </div>
+        </section>
 
-        <!-- Time Off -->
-        <div class="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-900/5">
-          <div class="h-0.5 bg-gradient-to-r from-violet-500 to-fuchsia-500"></div>
-          <div class="border-b border-gray-100 px-6 py-4">
-            <h2 class="text-base font-semibold text-gray-900">Time Off</h2>
-            <p class="mt-0.5 text-sm text-gray-500">Closures, holidays, and blocked periods</p>
+        <!-- ABWESENHEITEN -->
+        <section *ngIf="activeSection() === 'abwesenheiten'">
+          <div style="margin-bottom:24px;">
+            <p class="ff-mono" style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.2em;color:var(--ff-ink-muted);margin:0 0 4px 0;">ABWESENHEITEN</p>
+            <h2 class="ff-display" style="font-size:24px;color:var(--ff-ink);margin:0;">Sperrzeiten</h2>
           </div>
 
-          <div class="grid gap-6 p-6 lg:grid-cols-2">
-            <!-- Time off form -->
-            <form class="space-y-4" (ngSubmit)="saveTimeOffBlock()">
-              <div>
-                <label class="mb-1.5 block text-sm font-medium text-gray-700">Starts at</label>
-                <input [(ngModel)]="timeOffForm.startsAt" name="startsAt" type="datetime-local" required
-                  class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-900 outline-none transition-all focus:border-violet-500 focus:bg-white focus:ring-3 focus:ring-violet-500/15" />
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:flex-start;">
+            <!-- Form -->
+            <div style="background:var(--ff-surface);border:1px solid var(--ff-line);border-radius:var(--ff-r-lg);overflow:hidden;">
+              <div style="padding:16px 24px;border-bottom:1px solid var(--ff-line);">
+                <h3 style="font-size:14px;font-weight:600;color:var(--ff-ink);margin:0;">Neue Sperrzeit</h3>
               </div>
+              <form (ngSubmit)="saveTimeOffBlock()" style="padding:20px;display:flex;flex-direction:column;gap:14px;">
+                <div>
+                  <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Von</label>
+                  <input [(ngModel)]="timeOffForm.startsAt" name="startsAt" type="datetime-local" required class="ff-input" style="width:100%;box-sizing:border-box;" />
+                </div>
+                <div>
+                  <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Bis</label>
+                  <input [(ngModel)]="timeOffForm.endsAt" name="endsAt" type="datetime-local" required class="ff-input" style="width:100%;box-sizing:border-box;" />
+                </div>
+                <div>
+                  <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Grund</label>
+                  <input [(ngModel)]="timeOffForm.reason" name="timeOffReason" placeholder="z.B. Feiertag" class="ff-input" style="width:100%;box-sizing:border-box;" />
+                </div>
+                <button type="submit"
+                  style="padding:10px 20px;background:var(--ff-accent);color:#fff;border:none;border-radius:var(--ff-r-md);font-size:13px;font-weight:500;cursor:pointer;align-self:flex-start;">
+                  <i class="pi pi-spin pi-spinner" *ngIf="savingTimeOff()" style="margin-right:6px;"></i>Hinzufügen
+                </button>
+              </form>
+            </div>
 
-              <div>
-                <label class="mb-1.5 block text-sm font-medium text-gray-700">Ends at</label>
-                <input [(ngModel)]="timeOffForm.endsAt" name="endsAt" type="datetime-local" required
-                  class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-900 outline-none transition-all focus:border-violet-500 focus:bg-white focus:ring-3 focus:ring-violet-500/15" />
-              </div>
-
-              <div>
-                <label class="mb-1.5 block text-sm font-medium text-gray-700">Reason</label>
-                <input [(ngModel)]="timeOffForm.reason" name="timeOffReason" placeholder="e.g. Public holiday"
-                  class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-all focus:border-violet-500 focus:bg-white focus:ring-3 focus:ring-violet-500/15" />
-              </div>
-
-              <p-button type="submit" label="Add period" icon="pi pi-plus" size="small" [loading]="savingTimeOff()"></p-button>
-            </form>
-
-            <!-- Time off list -->
-            <div class="space-y-3">
+            <!-- List -->
+            <div style="display:flex;flex-direction:column;gap:10px;">
               <article *ngFor="let block of timeOffBlocks()"
-                class="flex items-center justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
-                <div class="flex items-center gap-3 min-w-0">
-                  <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
-                    <i class="pi pi-ban text-sm"></i>
-                  </div>
-                  <div class="min-w-0">
-                    <h3 class="text-sm font-semibold text-gray-900">{{ block.reason || 'Blocked period' }}</h3>
-                    <p class="mt-0.5 text-xs text-gray-500">{{ formatDateTimeValue(block.startsAt) }} â†’ {{ formatDateTimeValue(block.endsAt) }}</p>
-                  </div>
+                style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--ff-warn-soft);border:1px solid var(--ff-warn);border-radius:var(--ff-r-md);padding:14px 16px;">
+                <div>
+                  <p style="font-size:13px;font-weight:600;color:var(--ff-ink);margin:0;">{{ block.reason || 'Gesperrte Zeit' }}</p>
+                  <p class="ff-mono" style="font-size:11px;color:var(--ff-ink-muted);margin:4px 0 0 0;">{{ formatDateTimeValue(block.startsAt) }} → {{ formatDateTimeValue(block.endsAt) }}</p>
                 </div>
-                <p-button icon="pi pi-trash" severity="danger" [text]="true" [rounded]="true" size="small" (onClick)="removeTimeOffBlock(block.id)"></p-button>
+                <button type="button" (click)="removeTimeOffBlock(block.id)"
+                  style="padding:6px 10px;border:1px solid var(--ff-bad);border-radius:var(--ff-r-sm);background:transparent;cursor:pointer;font-size:12px;color:var(--ff-bad);flex-shrink:0;">
+                  <i class="pi pi-trash"></i>
+                </button>
               </article>
-
-              <div *ngIf="timeOffBlocks().length === 0" class="rounded-xl border-2 border-dashed border-gray-200 px-6 py-10 text-center">
-                <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100 text-gray-400">
-                  <i class="pi pi-calendar-times text-xl"></i>
-                </div>
-                <p class="text-sm text-gray-500">No blocked periods yet.</p>
+              <div *ngIf="timeOffBlocks().length === 0"
+                style="border:2px dashed var(--ff-line);border-radius:var(--ff-r-md);padding:48px 24px;text-align:center;color:var(--ff-ink-faint);">
+                <i class="pi pi-calendar-times" style="font-size:24px;display:block;margin-bottom:10px;"></i>
+                <p style="font-size:13px;margin:0;">Noch keine Sperrzeiten.</p>
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
-      </div>
-    </main>
+        <!-- BUCHUNGSREGELN -->
+        <section *ngIf="activeSection() === 'buchungsregeln'">
+          <div style="margin-bottom:24px;">
+            <p class="ff-mono" style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.2em;color:var(--ff-ink-muted);margin:0 0 4px 0;">BUCHUNGSREGELN</p>
+            <h2 class="ff-display" style="font-size:24px;color:var(--ff-ink);margin:0;">Buchungseinstellungen</h2>
+          </div>
+
+          <div style="background:var(--ff-surface);border:1px solid var(--ff-line);border-radius:var(--ff-r-lg);overflow:hidden;max-width:480px;">
+            <div style="padding:16px 24px;border-bottom:1px solid var(--ff-line);display:flex;align-items:center;justify-content:space-between;">
+              <h3 style="font-size:14px;font-weight:600;color:var(--ff-ink);margin:0;">Puffer-Zeit</h3>
+              <button type="button" (click)="saveSalonProfile()"
+                style="padding:8px 16px;background:var(--ff-ink);color:#fff;border:none;border-radius:var(--ff-r-md);font-size:13px;font-weight:500;cursor:pointer;">
+                <i class="pi pi-spin pi-spinner" *ngIf="savingProfile()" style="margin-right:6px;"></i>Speichern
+              </button>
+            </div>
+            <div style="padding:24px;">
+              <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Buchungs-Puffer (Minuten)</label>
+              <input [(ngModel)]="salonForm.bookingBufferMinutes" name="bookingBufferMinutes" type="number" min="0" max="120" step="5" class="ff-input" style="width:100%;box-sizing:border-box;" />
+              <p style="font-size:12px;color:var(--ff-ink-muted);margin:8px 0 0 0;">Mindestabstand zwischen Terminen.</p>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+    </div>
   `,
 })
 export class AdminShellPage {
   readonly authService = inject(AuthService);
   private readonly adminSetupApi = inject(AdminSetupApiService);
   private readonly router = inject(Router);
+
+  readonly activeSection = signal('profil');
+  readonly sidebarSections = [
+    { id: 'profil', label: 'Salon-Profil', icon: 'pi-building' },
+    { id: 'leistungen', label: 'Leistungen', icon: 'pi-tag' },
+    { id: 'oeffnungszeiten', label: 'Öffnungszeiten', icon: 'pi-clock' },
+    { id: 'abwesenheiten', label: 'Abwesenheiten', icon: 'pi-calendar-times' },
+    { id: 'buchungsregeln', label: 'Buchungsregeln', icon: 'pi-sliders-h' },
+  ];
 
   readonly loading = signal(true);
   readonly loadError = signal<string | null>(null);

@@ -108,344 +108,245 @@ function readErrorMessage(error: unknown, fallbackMessage: string): string {
   standalone: true,
   imports: [FormsModule, NgFor, NgIf],
   template: `
-    <main class="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
-      <div class="mx-auto max-w-6xl">
-        <div *ngIf="loadError()" class="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-          {{ loadError() }}
+    <!-- FadeFlow public booking page -->
+    <div style="min-height:100vh;background:var(--ff-bg);">
+
+      <!-- Header -->
+      <header style="background:var(--ff-surface);border-bottom:1px solid var(--ff-line);padding:16px 24px;">
+        <div style="max-width:720px;margin:0 auto;display:flex;align-items:center;gap:14px;">
+          <div style="width:48px;height:48px;border-radius:var(--ff-r-md);border:1px solid var(--ff-line);overflow:hidden;display:flex;align-items:center;justify-content:center;background:var(--ff-bg-muted);flex-shrink:0;">
+            <img *ngIf="logoUrl()" [src]="logoUrl()!" alt="Logo" style="width:48px;height:48px;object-fit:cover;" />
+            <img *ngIf="!logoUrl()" src="assets/images/logo-notext.png" alt="FadeFlow" style="width:32px;height:32px;object-fit:contain;" />
+          </div>
+          <div *ngIf="salon() as s">
+            <h1 style="font-size:18px;font-weight:700;color:var(--ff-ink);margin:0;">{{ s.name }}</h1>
+            <p class="ff-mono" style="font-size:11px;color:var(--ff-ink-muted);margin:2px 0 0 0;">{{ s.addressLine1 }}{{ s.city ? ', ' + s.city : '' }}</p>
+          </div>
+        </div>
+      </header>
+
+      <!-- Loading / error -->
+      <div *ngIf="loading()" style="display:flex;align-items:center;justify-content:center;padding:96px 24px;color:var(--ff-ink-muted);gap:12px;">
+        <i class="pi pi-spin pi-spinner" style="font-size:20px;"></i> Wird geladen…
+      </div>
+      <div *ngIf="loadError()" style="max-width:720px;margin:24px auto;background:var(--ff-bad-soft);border:1px solid var(--ff-bad);border-radius:var(--ff-r-md);padding:14px 16px;font-size:13px;color:var(--ff-bad);">
+        {{ loadError() }}
+      </div>
+
+      <!-- Main content -->
+      <div *ngIf="!loading() && salon()" style="max-width:720px;margin:0 auto;padding:40px 24px;">
+
+        <!-- Heading -->
+        <div style="margin-bottom:40px;">
+          <h2 class="ff-display" style="font-size:32px;color:var(--ff-ink);line-height:1.15;margin:0 0 12px 0;">
+            Termin in <em style="color:var(--ff-accent);font-style:italic;">vier Schritten</em> buchen.
+          </h2>
+          <!-- Step indicator -->
+          <div class="ff-mono" style="display:flex;gap:16px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--ff-ink-faint);">
+            <span [style.color]="currentStep() >= 1 ? 'var(--ff-accent-text)' : 'var(--ff-ink-faint)'">01 Leistung</span>
+            <span style="color:var(--ff-line-strong);">→</span>
+            <span [style.color]="currentStep() >= 2 ? 'var(--ff-accent-text)' : 'var(--ff-ink-faint)'">02 Datum</span>
+            <span style="color:var(--ff-line-strong);">→</span>
+            <span [style.color]="currentStep() >= 3 ? 'var(--ff-accent-text)' : 'var(--ff-ink-faint)'">03 Zeit</span>
+            <span style="color:var(--ff-line-strong);">→</span>
+            <span [style.color]="currentStep() >= 4 ? 'var(--ff-accent-text)' : 'var(--ff-ink-faint)'">04 Sie</span>
+          </div>
         </div>
 
-        <div *ngIf="loading()" class="flex min-h-[50vh] flex-col items-center justify-center text-gray-500">
-          <i class="pi pi-spin pi-spinner mb-3 text-3xl text-violet-500"></i>
-          <p>Loading booking page…</p>
-        </div>
-
-        <div *ngIf="!loading() && salon() as currentSalon" class="grid gap-6 lg:grid-cols-[1.05fr_1fr]">
-          <section class="overflow-hidden rounded-[2rem] bg-gradient-to-br from-violet-700 via-violet-600 to-fuchsia-600 text-white shadow-xl shadow-violet-500/20">
-            <div class="p-8 sm:p-10">
-              <div class="flex items-center gap-3">
-                <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25">
-                  <img *ngIf="logoUrl()" [src]="logoUrl()!" alt="Salon logo" class="h-10 w-10 rounded-xl object-cover" />
-                  <i *ngIf="!logoUrl()" class="pi pi-sparkles text-lg"></i>
-                </div>
-                <div>
-                  <p class="text-xs font-semibold uppercase tracking-[0.3em] text-white/60">Online Booking</p>
-                  <h1 class="text-3xl font-bold tracking-tight">{{ currentSalon.name }}</h1>
-                </div>
-              </div>
-
-              <p class="mt-6 max-w-xl text-sm leading-6 text-violet-50/90">
-                {{ currentSalon.description || 'Choose a service, pick a time, and send your booking request in one short flow.' }}
-              </p>
-
-              <div class="mt-8 grid gap-3 sm:grid-cols-2">
-                <div class="rounded-2xl bg-white/10 px-4 py-3 ring-1 ring-white/15">
-                  <p class="text-xs uppercase tracking-wider text-white/60">Contact</p>
-                  <p class="mt-1 text-sm text-white">{{ currentSalon.phone || currentSalon.email || 'Contact details available after booking' }}</p>
-                </div>
-                <div class="rounded-2xl bg-white/10 px-4 py-3 ring-1 ring-white/15">
-                  <p class="text-xs uppercase tracking-wider text-white/60">Timezone</p>
-                  <p class="mt-1 text-sm text-white">{{ currentSalon.timezone }}</p>
-                </div>
-              </div>
-
-              <div class="mt-10 rounded-3xl bg-white/10 p-5 ring-1 ring-white/15 backdrop-blur-sm">
-                <p class="text-xs font-semibold uppercase tracking-[0.25em] text-white/60">How It Works</p>
-                <ol class="mt-4 space-y-3 text-sm text-white/90">
-                  <li>1. Pick one service for this booking.</li>
-                  <li>2. Check the month preview and choose a highlighted day.</li>
-                  <li>3. Choose one available start time.</li>
-                  <li>4. Enter your details and send the request.</li>
-                </ol>
-              </div>
-            </div>
-          </section>
-
-          <section class="rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-gray-900/5 sm:p-8">
-            <div *ngIf="completedBooking() as booking" class="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-900">
-              <div class="flex items-start gap-3">
-                <div class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
-                  <i class="pi pi-check-circle text-lg"></i>
-                </div>
-                <div>
-                  <h2 class="text-base font-semibold">Booking request sent</h2>
-                  <p class="mt-1 text-sm text-emerald-800">Your request is now pending confirmation by the salon.</p>
-                  <div class="mt-4 grid gap-2 text-sm text-emerald-900 sm:grid-cols-2">
-                    <div>
-                      <p class="text-xs uppercase tracking-wide text-emerald-700">Service</p>
-                      <p class="font-medium">{{ booking.service.name }}</p>
-                    </div>
-                    <div>
-                      <p class="text-xs uppercase tracking-wide text-emerald-700">When</p>
-                      <p class="font-medium">{{ formatDateTimeValue(booking.startsAt) }}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
+        <!-- Confirmation -->
+        <div *ngIf="completedBooking() as booking"
+          style="background:var(--ff-ok-soft);border:1px solid var(--ff-ok);border-radius:var(--ff-r-lg);padding:24px;margin-bottom:32px;">
+          <p class="ff-mono" style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.2em;color:var(--ff-ok);margin:0 0 8px 0;">BUCHUNG EINGEGANGEN</p>
+          <h3 class="ff-display" style="font-size:22px;color:var(--ff-ink);margin:0 0 16px 0;">Anfrage gesendet!</h3>
+          <p style="font-size:13px;color:var(--ff-ink-muted);margin:0 0 16px 0;">Deine Buchungsanfrage ist eingegangen und wird vom Salon bestätigt.</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
             <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.25em] text-violet-500">Book Appointment</p>
-              <h2 class="mt-2 text-2xl font-bold tracking-tight text-gray-900">Request an appointment</h2>
-              <p class="mt-2 text-sm text-gray-500">One service per booking. Unavailable times stay visible but disabled.</p>
+              <p class="ff-mono" style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--ff-ink-muted);margin:0 0 4px 0;">Leistung</p>
+              <p style="font-size:14px;font-weight:600;color:var(--ff-ink);margin:0;">{{ booking.service.name }}</p>
             </div>
+            <div>
+              <p class="ff-mono" style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--ff-ink-muted);margin:0 0 4px 0;">Termin</p>
+              <p style="font-size:14px;font-weight:600;color:var(--ff-ink);margin:0;">{{ formatDateTimeValue(booking.startsAt) }}</p>
+            </div>
+          </div>
+        </div>
 
-            <div class="mt-8 space-y-8">
-              <section>
-                <div class="mb-3 flex items-center justify-between">
-                  <h3 class="text-sm font-semibold text-gray-900">1. Choose a service</h3>
-                  <span class="text-xs text-gray-400">{{ services().length }} available</span>
-                </div>
-
-                <div *ngIf="services().length > 0" class="grid gap-3">
-                  <button
-                    *ngFor="let service of services()"
-                    type="button"
-                    (click)="selectService(service.id)"
-                    class="rounded-2xl border px-4 py-4 text-left transition-all"
-                    [class.border-violet-500]="selectedServiceId() === service.id"
-                    [class.bg-violet-50]="selectedServiceId() === service.id"
-                    [class.shadow-sm]="selectedServiceId() === service.id"
-                    [class.border-gray-200]="selectedServiceId() !== service.id"
-                    [class.bg-white]="selectedServiceId() !== service.id"
-                  >
-                    <div class="flex items-start justify-between gap-4">
-                      <div>
-                        <h4 class="text-sm font-semibold text-gray-900">{{ service.name }}</h4>
-                        <p class="mt-1 text-sm text-gray-500">{{ service.description || 'No description provided.' }}</p>
-                      </div>
-                      <div class="shrink-0 text-right">
-                        <p class="text-sm font-semibold text-gray-900">{{ formatMoneyValue(service.priceAmount, service.currency) }}</p>
-                        <p class="mt-1 text-xs text-gray-400">{{ service.durationMinutes }} min</p>
-                      </div>
-                    </div>
-                  </button>
-                </div>
-
-                <div *ngIf="services().length === 0" class="rounded-2xl border border-dashed border-gray-200 px-4 py-6 text-sm text-gray-500">
-                  This salon does not have bookable services yet.
-                </div>
-              </section>
-
-              <section>
-                <div class="mb-3 flex items-center justify-between gap-3">
-                  <h3 class="text-sm font-semibold text-gray-900">2. Pick a date</h3>
-                  <span class="text-xs text-gray-400">{{ calendarPreview()?.totalAvailableDays || 0 }} bookable days</span>
-                </div>
-
-                <div *ngIf="calendarError()" class="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-                  {{ calendarError() }}
-                </div>
-
-                <div class="rounded-3xl border border-gray-200 bg-gray-50 p-4 sm:p-5">
-                  <div class="flex items-center justify-between gap-3">
-                    <button
-                      type="button"
-                      (click)="showPreviousMonth()"
-                      [disabled]="!canGoToPreviousMonth() || calendarLoading()"
-                      class="flex h-10 w-10 items-center justify-center rounded-2xl border border-gray-200 bg-white text-gray-700 transition-all hover:border-violet-500 hover:text-violet-600 disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      <i class="pi pi-chevron-left"></i>
-                    </button>
-
-                    <div class="text-center">
-                      <p class="text-sm font-semibold capitalize text-gray-900">{{ calendarMonthLabel() }}</p>
-                      <p class="mt-1 text-xs text-gray-500">Tap a highlighted day to load the available start times.</p>
-                    </div>
-
-                    <button
-                      type="button"
-                      (click)="showNextMonth()"
-                      [disabled]="!canGoToNextMonth() || calendarLoading()"
-                      class="flex h-10 w-10 items-center justify-center rounded-2xl border border-gray-200 bg-white text-gray-700 transition-all hover:border-violet-500 hover:text-violet-600 disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      <i class="pi pi-chevron-right"></i>
-                    </button>
-                  </div>
-
-                  <div class="mt-4 grid grid-cols-7 gap-2 text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-400">
-                    <span *ngFor="let weekday of weekdayLabels">{{ weekday }}</span>
-                  </div>
-
-                  <div *ngIf="calendarLoading()" class="mt-4 rounded-2xl border border-dashed border-gray-200 bg-white px-4 py-6 text-sm text-gray-500">
-                    Loading calendar preview…
-                  </div>
-
-                  <div *ngIf="!calendarLoading() && calendarDays().length > 0" class="mt-4 grid grid-cols-7 gap-2">
-                    <button
-                      *ngFor="let day of calendarDays()"
-                      type="button"
-                      [disabled]="!day.selectable"
-                      (click)="selectCalendarDay(day)"
-                      class="min-h-[4.5rem] rounded-2xl border px-2 py-2 text-left transition-all"
-                      [class.opacity-45]="!day.inRequestedMonth"
-                      [class.cursor-not-allowed]="!day.selectable"
-                      [class.border-violet-500]="isSelectedCalendarDay(day)"
-                      [class.bg-violet-600]="isSelectedCalendarDay(day)"
-                      [class.text-white]="isSelectedCalendarDay(day)"
-                      [class.border-emerald-200]="!isSelectedCalendarDay(day) && day.selectable"
-                      [class.bg-emerald-50]="!isSelectedCalendarDay(day) && day.selectable"
-                      [class.text-emerald-900]="!isSelectedCalendarDay(day) && day.selectable"
-                      [class.border-gray-200]="!isSelectedCalendarDay(day) && !day.selectable"
-                      [class.bg-white]="!isSelectedCalendarDay(day) && !day.selectable"
-                      [class.text-gray-400]="!isSelectedCalendarDay(day) && !day.selectable"
-                    >
-                      <span class="block text-sm font-semibold">{{ day.dayOfMonth }}</span>
-                      <span class="mt-1 block text-[10px] uppercase tracking-wide">
-                        {{ day.available ? day.availableSlotCount + ' slots' : 'Unavailable' }}
-                      </span>
-                    </button>
-                  </div>
-
-                  <div *ngIf="!calendarLoading() && calendarDays().length === 0" class="mt-4 rounded-2xl border border-dashed border-gray-200 bg-white px-4 py-6 text-sm text-gray-500">
-                    No calendar preview is available for this service yet.
-                  </div>
-
-                  <div class="mt-4 flex flex-wrap items-center gap-4 text-xs text-gray-500">
-                    <span class="inline-flex items-center gap-2">
-                      <span class="h-2.5 w-2.5 rounded-full bg-emerald-400"></span>
-                      Bookable day
-                    </span>
-                    <span class="inline-flex items-center gap-2">
-                      <span class="h-2.5 w-2.5 rounded-full bg-gray-300"></span>
-                      No valid slots
-                    </span>
-                    <span class="inline-flex items-center gap-2">
-                      <span class="h-2.5 w-2.5 rounded-full bg-violet-500"></span>
-                      Selected day
-                    </span>
-                  </div>
-                </div>
-
-                <p class="mt-3 text-sm text-gray-500">Selected date: <span class="font-medium text-gray-900">{{ selectedDateLabel() }}</span></p>
-              </section>
-
-              <section>
-                <div class="mb-3 flex items-center justify-between gap-3">
-                  <h3 class="text-sm font-semibold text-gray-900">3. Select a time</h3>
-                  <span class="text-xs text-gray-400">30 min steps · {{ selectedService()?.durationMinutes || 0 }} min service</span>
-                </div>
-
-                <div *ngIf="availabilityError()" class="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-                  {{ availabilityError() }}
-                </div>
-
-                <div *ngIf="availabilityLoading()" class="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500">
-                  Loading time slots…
-                </div>
-
-                <div *ngIf="!availabilityLoading() && slots().length > 0" class="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  <button
-                    *ngFor="let slot of slots()"
-                    type="button"
-                    [disabled]="!slot.available"
-                    (click)="selectSlot(slot)"
-                    class="rounded-2xl border px-3 py-3 text-sm font-medium transition-all"
-                    [class.cursor-not-allowed]="!slot.available"
-                    [class.border-gray-200]="slot.available && selectedSlot()?.startsAt !== slot.startsAt"
-                    [class.bg-white]="slot.available && selectedSlot()?.startsAt !== slot.startsAt"
-                    [class.text-gray-700]="slot.available && selectedSlot()?.startsAt !== slot.startsAt"
-                    [class.border-violet-500]="selectedSlot()?.startsAt === slot.startsAt"
-                    [class.bg-violet-50]="selectedSlot()?.startsAt === slot.startsAt"
-                    [class.text-violet-700]="selectedSlot()?.startsAt === slot.startsAt"
-                    [class.border-gray-100]="!slot.available"
-                    [class.bg-gray-100]="!slot.available"
-                    [class.text-gray-400]="!slot.available"
-                  >
-                    <span class="block">{{ slot.label }}</span>
-                    <span class="mt-1 block text-[11px] uppercase tracking-wide">{{ slot.available ? 'Available' : 'Unavailable' }}</span>
-                  </button>
-                </div>
-
-                <div *ngIf="!availabilityLoading() && slots().length === 0" class="rounded-2xl border border-dashed border-gray-200 px-4 py-6 text-sm text-gray-500">
-                  No slots are available for the selected date.
-                </div>
-              </section>
-
-              <section>
-                <h3 class="mb-3 text-sm font-semibold text-gray-900">4. Your details</h3>
-                <div class="grid gap-4 sm:grid-cols-2">
-                  <input
-                    [(ngModel)]="bookingForm.firstName"
-                    name="firstName"
-                    type="text"
-                    placeholder="First name"
-                    class="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition-all focus:border-violet-500 focus:bg-white focus:ring-3 focus:ring-violet-500/15"
-                    required
-                  />
-                  <input
-                    [(ngModel)]="bookingForm.lastName"
-                    name="lastName"
-                    type="text"
-                    placeholder="Last name"
-                    class="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition-all focus:border-violet-500 focus:bg-white focus:ring-3 focus:ring-violet-500/15"
-                    required
-                  />
-                  <input
-                    [(ngModel)]="bookingForm.email"
-                    name="email"
-                    type="email"
-                    placeholder="Email address"
-                    class="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition-all focus:border-violet-500 focus:bg-white focus:ring-3 focus:ring-violet-500/15"
-                    required
-                  />
-                  <input
-                    [(ngModel)]="bookingForm.phone"
-                    name="phone"
-                    type="tel"
-                    placeholder="Phone number"
-                    class="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition-all focus:border-violet-500 focus:bg-white focus:ring-3 focus:ring-violet-500/15"
-                    required
-                  />
-                  <textarea
-                    [(ngModel)]="bookingForm.notes"
-                    name="notes"
-                    rows="3"
-                    placeholder="Notes for the salon (optional)"
-                    class="sm:col-span-2 w-full resize-none rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition-all focus:border-violet-500 focus:bg-white focus:ring-3 focus:ring-violet-500/15"
-                  ></textarea>
-                </div>
-              </section>
-
-              <section class="rounded-3xl bg-gray-50 p-5">
-                <h3 class="text-sm font-semibold text-gray-900">Summary</h3>
-                <div class="mt-4 space-y-2 text-sm text-gray-600">
-                  <div class="flex items-center justify-between gap-4">
-                    <span>Service</span>
-                    <span class="font-medium text-gray-900">{{ selectedService()?.name || 'Not selected' }}</span>
-                  </div>
-                  <div class="flex items-center justify-between gap-4">
-                    <span>Price</span>
-                    <span class="font-medium text-gray-900">{{ selectedService() ? formatMoneyValue(selectedService()!.priceAmount, selectedService()!.currency) : '—' }}</span>
-                  </div>
-                  <div class="flex items-center justify-between gap-4">
-                    <span>Time</span>
-                    <span class="font-medium text-gray-900">{{ selectedSlot() ? formatDateTimeValue(selectedSlot()!.startsAt) : 'Not selected' }}</span>
-                  </div>
-                  <div class="flex items-center justify-between gap-4">
-                    <span>Status after request</span>
-                    <span class="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700">Pending</span>
-                  </div>
-                </div>
-              </section>
-
-              <div *ngIf="submitError()" class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-                {{ submitError() }}
+        <!-- STEP 1: Service selection -->
+        <div style="background:var(--ff-surface);border:1px solid var(--ff-line);border-radius:var(--ff-r-lg);margin-bottom:16px;overflow:hidden;">
+          <div style="padding:16px 20px;border-bottom:1px solid var(--ff-line);display:flex;align-items:center;gap:12px;">
+            <span class="ff-mono"
+              style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;"
+              [style.background]="currentStep() >= 1 ? 'var(--ff-accent)' : 'var(--ff-bg-muted)'"
+              [style.color]="currentStep() >= 1 ? '#fff' : 'var(--ff-ink-muted)'">01</span>
+            <h3 style="font-size:14px;font-weight:600;color:var(--ff-ink);margin:0;">Leistung wählen</h3>
+          </div>
+          <div style="padding:16px;display:flex;flex-direction:column;gap:8px;">
+            <button *ngFor="let service of services()" type="button"
+              (click)="selectService(service.id)"
+              style="width:100%;text-align:left;padding:14px 16px;border-radius:var(--ff-r-md);cursor:pointer;transition:all 0.12s;display:flex;align-items:center;justify-content:space-between;gap:12px;"
+              [style.background]="selectedService()?.id === service.id ? 'var(--ff-accent-soft)' : 'var(--ff-surface)'"
+              [style.border]="selectedService()?.id === service.id ? '1px solid var(--ff-accent)' : '1px solid var(--ff-line)'"
+              [style.border-left]="selectedService()?.id === service.id ? '3px solid var(--ff-accent)' : '1px solid var(--ff-line)'">
+              <div>
+                <p style="font-size:14px;font-weight:600;color:var(--ff-ink);margin:0;">{{ service.name }}</p>
+                <p *ngIf="service.description" style="font-size:12px;color:var(--ff-ink-muted);margin:3px 0 0 0;">{{ service.description }}</p>
               </div>
+              <div style="text-align:right;flex-shrink:0;">
+                <p class="ff-mono" style="font-size:12px;font-weight:600;color:var(--ff-ink);margin:0;">{{ formatMoneyValue(service.priceAmount, service.currency) }}</p>
+                <p class="ff-mono" style="font-size:11px;color:var(--ff-ink-muted);margin:2px 0 0 0;">{{ service.durationMinutes }} min</p>
+              </div>
+            </button>
+            <p *ngIf="services().length === 0" style="font-size:13px;color:var(--ff-ink-muted);padding:8px 0;margin:0;">Keine Leistungen verfügbar.</p>
+          </div>
+        </div>
 
-              <button
-                type="button"
-                (click)="submit()"
-                [disabled]="submitting() || !canSubmit()"
-                class="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-4 py-3.5 text-sm font-semibold text-white shadow-md shadow-violet-500/20 transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <i [class]="submitting() ? 'pi pi-spin pi-spinner' : 'pi pi-send'"></i>
-                <span>{{ submitting() ? 'Sending request…' : 'Send booking request' }}</span>
+        <!-- STEP 2: Date selection -->
+        <div style="background:var(--ff-surface);border:1px solid var(--ff-line);border-radius:var(--ff-r-lg);margin-bottom:16px;overflow:hidden;"
+          [style.opacity]="currentStep() < 2 ? '0.45' : '1'">
+          <div style="padding:16px 20px;border-bottom:1px solid var(--ff-line);display:flex;align-items:center;justify-content:space-between;gap:12px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <span class="ff-mono"
+                style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;"
+                [style.background]="currentStep() >= 2 ? 'var(--ff-accent)' : 'var(--ff-bg-muted)'"
+                [style.color]="currentStep() >= 2 ? '#fff' : 'var(--ff-ink-muted)'">02</span>
+              <h3 style="font-size:14px;font-weight:600;color:var(--ff-ink);margin:0;">Datum wählen</h3>
+            </div>
+            <div *ngIf="calendarPreview()" style="display:flex;align-items:center;gap:8px;">
+              <button type="button" (click)="prevMonth()"
+                style="width:28px;height:28px;border-radius:50%;border:1px solid var(--ff-line);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ff-ink-muted);">
+                <i class="pi pi-angle-left" style="font-size:12px;"></i>
+              </button>
+              <span class="ff-mono" style="font-size:12px;color:var(--ff-ink);">{{ formatMonthValue(calendarMonth()) }}</span>
+              <button type="button" (click)="nextMonth()"
+                style="width:28px;height:28px;border-radius:50%;border:1px solid var(--ff-line);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ff-ink-muted);">
+                <i class="pi pi-angle-right" style="font-size:12px;"></i>
               </button>
             </div>
-          </section>
+          </div>
+          <div *ngIf="currentStep() >= 2" style="padding:16px;">
+            <div *ngIf="calendarLoading()" style="text-align:center;padding:24px;color:var(--ff-ink-muted);font-size:13px;">
+              <i class="pi pi-spin pi-spinner" style="margin-right:8px;"></i>Kalender wird geladen…
+            </div>
+            <div *ngIf="calendarError()" style="font-size:13px;color:var(--ff-bad);margin-bottom:8px;">{{ calendarError() }}</div>
+            <div *ngIf="!calendarLoading() && calendarPreview()">
+              <!-- Weekday header -->
+              <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px;">
+                <div *ngFor="let d of calendarWeekdays"
+                  class="ff-mono" style="text-align:center;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--ff-ink-faint);padding:4px 0;">
+                  {{ d }}
+                </div>
+              </div>
+              <!-- Calendar grid -->
+              <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;">
+                <div *ngFor="let cell of calendarCells()" style="aspect-ratio:1;">
+                  <div *ngIf="!cell" style="height:100%;"></div>
+                  <button *ngIf="cell" type="button"
+                    (click)="cell.available ? selectDate(cell.date) : null"
+                    style="width:100%;height:100%;border-radius:var(--ff-r-sm);border:none;font-size:13px;font-weight:500;transition:all 0.12s;cursor:pointer;"
+                    [style.background]="selectedDate() === cell.date ? 'var(--ff-accent)' : cell.available ? 'var(--ff-accent-soft)' : 'transparent'"
+                    [style.color]="selectedDate() === cell.date ? '#fff' : cell.available ? 'var(--ff-accent-text)' : 'var(--ff-ink-faint)'"
+                    [style.cursor]="cell.available ? 'pointer' : 'default'"
+                    [disabled]="!cell.available">
+                    {{ cell.day }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
+
+        <!-- STEP 3: Time slot selection -->
+        <div style="background:var(--ff-surface);border:1px solid var(--ff-line);border-radius:var(--ff-r-lg);margin-bottom:16px;overflow:hidden;"
+          [style.opacity]="currentStep() < 3 ? '0.45' : '1'">
+          <div style="padding:16px 20px;border-bottom:1px solid var(--ff-line);display:flex;align-items:center;gap:12px;">
+            <span class="ff-mono"
+              style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;"
+              [style.background]="currentStep() >= 3 ? 'var(--ff-accent)' : 'var(--ff-bg-muted)'"
+              [style.color]="currentStep() >= 3 ? '#fff' : 'var(--ff-ink-muted)'">03</span>
+            <h3 style="font-size:14px;font-weight:600;color:var(--ff-ink);margin:0;">Zeit wählen</h3>
+          </div>
+          <div *ngIf="currentStep() >= 3" style="padding:16px;">
+            <div *ngIf="availabilityLoading()" style="text-align:center;padding:24px;color:var(--ff-ink-muted);font-size:13px;">
+              <i class="pi pi-spin pi-spinner" style="margin-right:8px;"></i>Zeiten werden geladen…
+            </div>
+            <div *ngIf="availabilityError()" style="font-size:13px;color:var(--ff-bad);margin-bottom:8px;">{{ availabilityError() }}</div>
+            <div *ngIf="!availabilityLoading() && availableSlots().length > 0" style="display:flex;flex-wrap:wrap;gap:8px;">
+              <button *ngFor="let slot of availableSlots()" type="button"
+                (click)="selectSlot(slot)"
+                class="ff-mono"
+                style="padding:8px 14px;border-radius:var(--ff-r-sm);font-size:12px;font-weight:600;cursor:pointer;border:1px solid;transition:all 0.12s;"
+                [style.background]="selectedSlot()?.startsAt === slot.startsAt ? 'var(--ff-accent)' : 'transparent'"
+                [style.color]="selectedSlot()?.startsAt === slot.startsAt ? '#fff' : 'var(--ff-accent-text)'"
+                [style.border-color]="selectedSlot()?.startsAt === slot.startsAt ? 'var(--ff-accent)' : 'var(--ff-accent)'">
+                {{ formatTimeOnly(slot.startsAt) }}
+              </button>
+            </div>
+            <p *ngIf="!availabilityLoading() && availableSlots().length === 0 && selectedDate()"
+              style="font-size:13px;color:var(--ff-ink-muted);margin:0;">Keine freien Zeiten für diesen Tag.</p>
+          </div>
+        </div>
+
+        <!-- STEP 4: Personal details -->
+        <div style="background:var(--ff-surface);border:1px solid var(--ff-line);border-radius:var(--ff-r-lg);overflow:hidden;"
+          [style.opacity]="currentStep() < 4 ? '0.45' : '1'">
+          <div style="padding:16px 20px;border-bottom:1px solid var(--ff-line);display:flex;align-items:center;gap:12px;">
+            <span class="ff-mono"
+              style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;"
+              [style.background]="currentStep() >= 4 ? 'var(--ff-accent)' : 'var(--ff-bg-muted)'"
+              [style.color]="currentStep() >= 4 ? '#fff' : 'var(--ff-ink-muted)'">04</span>
+            <h3 style="font-size:14px;font-weight:600;color:var(--ff-ink);margin:0;">Ihre Angaben</h3>
+          </div>
+          <div *ngIf="currentStep() >= 4" style="padding:20px;">
+            <!-- Booking summary -->
+            <div style="background:var(--ff-bg-muted);border-radius:var(--ff-r-md);padding:14px 16px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;gap:16px;">
+              <div>
+                <p style="font-size:13px;font-weight:600;color:var(--ff-ink);margin:0;">{{ selectedService()?.name }}</p>
+                <p class="ff-mono" style="font-size:11px;color:var(--ff-ink-muted);margin:3px 0 0 0;">{{ formatDateTimeValue(selectedSlot()?.startsAt ?? '') }}</p>
+              </div>
+              <div style="text-align:right;flex-shrink:0;">
+                <p class="ff-mono" style="font-size:13px;font-weight:700;color:var(--ff-ink);margin:0;">{{ formatMoneyValue(selectedService()?.priceAmount ?? 0, selectedService()?.currency ?? 'CHF') }}</p>
+                <p class="ff-mono" style="font-size:11px;color:var(--ff-ink-muted);margin:2px 0 0 0;">{{ selectedService()?.durationMinutes }} min</p>
+              </div>
+            </div>
+
+            <form (ngSubmit)="submitBooking()">
+              <div *ngIf="submitError()" style="background:var(--ff-bad-soft);border:1px solid var(--ff-bad);border-radius:var(--ff-r-sm);padding:10px 14px;font-size:13px;color:var(--ff-bad);margin-bottom:16px;">
+                {{ submitError() }}
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                <div>
+                  <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Vorname</label>
+                  <input [(ngModel)]="bookingForm.firstName" name="firstName" required class="ff-input" style="width:100%;box-sizing:border-box;" />
+                </div>
+                <div>
+                  <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Nachname</label>
+                  <input [(ngModel)]="bookingForm.lastName" name="lastName" required class="ff-input" style="width:100%;box-sizing:border-box;" />
+                </div>
+                <div>
+                  <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">E-Mail</label>
+                  <input [(ngModel)]="bookingForm.email" name="email" type="email" required class="ff-input" style="width:100%;box-sizing:border-box;" />
+                </div>
+                <div>
+                  <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Telefon</label>
+                  <input [(ngModel)]="bookingForm.phone" name="phone" required class="ff-input" style="width:100%;box-sizing:border-box;" />
+                </div>
+                <div style="grid-column:span 2;">
+                  <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Hinweise (optional)</label>
+                  <textarea [(ngModel)]="bookingForm.notes" name="notes" rows="3" class="ff-input" style="width:100%;box-sizing:border-box;resize:vertical;"></textarea>
+                </div>
+              </div>
+              <button type="submit"
+                style="margin-top:20px;width:100%;padding:14px;background:var(--ff-ink);color:#fff;border:none;border-radius:var(--ff-r-md);font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;"
+                [disabled]="submitting()">
+                <i [class]="submitting() ? 'pi pi-spin pi-spinner' : 'pi pi-send'" style="font-size:14px;"></i>
+                <span>{{ submitting() ? 'Wird gesendet…' : 'Buchungsanfrage senden' }}</span>
+              </button>
+            </form>
+          </div>
+        </div>
+
       </div>
-    </main>
+    </div>
   `,
 })
 export class PublicBookingPage {
@@ -476,6 +377,65 @@ export class PublicBookingPage {
 
   constructor() {
     void this.loadPage();
+  }
+
+  readonly calendarWeekdays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+
+  currentStep(): number {
+    if (!this.selectedServiceId()) return 1;
+    if (!this.bookingDate) return 2;
+    if (!this.selectedSlot()) return 3;
+    return 4;
+  }
+
+  selectedDate(): string {
+    return this.bookingDate;
+  }
+
+  calendarMonth(): string {
+    return this.visibleMonth();
+  }
+
+  availableSlots(): AvailabilitySlot[] {
+    return this.slots().filter((s) => s.available);
+  }
+
+  calendarCells(): Array<{ date: string; day: number; available: boolean } | null> {
+    const days = this.calendarDays();
+    if (days.length === 0) return [];
+    const firstDate = new Date(`${days[0]!.date}T12:00:00Z`);
+    const firstDayOfWeek = (firstDate.getUTCDay() + 6) % 7;
+    const cells: Array<{ date: string; day: number; available: boolean } | null> = [];
+    for (let i = 0; i < firstDayOfWeek; i++) cells.push(null);
+    for (const d of days) {
+      cells.push({ date: d.date, day: parseInt(d.date.slice(8), 10), available: d.selectable });
+    }
+    return cells;
+  }
+
+  formatTimeOnly(value: string): string {
+    return new Date(value).toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  formatMonthValue(_month: string): string {
+    return this.calendarMonthLabel();
+  }
+
+  prevMonth(): void {
+    void this.showPreviousMonth();
+  }
+
+  nextMonth(): void {
+    void this.showNextMonth();
+  }
+
+  selectDate(date: string): void {
+    const day = this.calendarDays().find((d) => d.date === date);
+    if (day?.selectable) void this.selectCalendarDay(day);
+  }
+
+  submitBooking(): void {
+    void this.submit();
   }
 
   minBookableDate(): string {
