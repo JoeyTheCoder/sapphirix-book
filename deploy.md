@@ -26,7 +26,7 @@ Why this shape:
 
 - it keeps the app URL clean now
 - it leaves the root domain free for a future marketing page
-- it matches the current route structure well, for example `https://app.fadeflow.ch/s/demo-salon/book`
+- it matches the current route structure well, for example `https://app.fadeflow.ch/demo-salon`
 
 If you want the app directly on `fadeflow.ch`, you can do that too, but `app.fadeflow.ch` is the cleaner long-term default.
 
@@ -36,7 +36,7 @@ Recommended public URLs:
 
 - app: `https://app.fadeflow.ch`
 - admin login: `https://app.fadeflow.ch/admin/login`
-- public booking example: `https://app.fadeflow.ch/s/demo-salon/book`
+- public booking example: `https://app.fadeflow.ch/demo-salon`
 
 ## 1. Buy And Prepare The VPS
 
@@ -309,7 +309,7 @@ Run these checks in a browser or with `curl`:
 - `https://app.fadeflow.ch/health` if you expose it directly through the same host root
 - `https://app.fadeflow.ch/api/v1/...` through the Nginx proxy
 - `https://app.fadeflow.ch/admin/login`
-- `https://app.fadeflow.ch/s/demo-salon/book`
+- `https://app.fadeflow.ch/demo-salon`
 
 Your current key health URLs are:
 
@@ -430,6 +430,6 @@ If you want the simplest clean first rollout, use:
 - app host: `app.fadeflow.ch`
 - app origin env values pointing to `https://app.fadeflow.ch`
 - root domain `fadeflow.ch` redirecting to `https://app.fadeflow.ch`
-- one pilot salon URL such as `https://app.fadeflow.ch/s/demo-salon/book`
+- one pilot salon URL such as `https://app.fadeflow.ch/demo-salon`
 
 That is the most pragmatic setup for getting fully online without boxing yourself into the wrong domain shape later.

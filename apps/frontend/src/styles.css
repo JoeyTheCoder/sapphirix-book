@@ -143,6 +143,129 @@ textarea.ff-input {
   color: var(--ff-ink);
 }
 
+.ff-admin-notification-wrap {
+  position: relative;
+}
+
+.ff-admin-notification-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--ff-bad);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+.ff-admin-notification-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 340px;
+  max-height: 420px;
+  overflow: auto;
+  background: var(--ff-surface);
+  border: 1px solid var(--ff-line);
+  border-radius: 14px;
+  box-shadow: 0 24px 60px rgba(15, 30, 58, 0.14);
+}
+
+.ff-admin-notification-item {
+  display: block;
+  padding: 14px 16px;
+  border-top: 1px solid var(--ff-line);
+  text-decoration: none;
+  transition: background-color 120ms;
+}
+
+.ff-admin-notification-item:first-child {
+  border-top: none;
+}
+
+.ff-admin-notification-item:hover {
+  background: var(--ff-surface-alt);
+}
+
+.ff-admin-notification-item.unread {
+  background: rgba(22, 193, 198, 0.08);
+}
+
+@media (max-width: 900px) {
+  .ff-admin-topbar-inner {
+    padding: 10px 16px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    min-height: auto;
+  }
+
+  .ff-admin-brand {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 12px 16px;
+  }
+
+  .ff-admin-brand-name {
+    display: none;
+  }
+
+  .ff-admin-nav {
+    width: 100%;
+    min-height: auto;
+    gap: 14px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .ff-admin-nav-link {
+    padding: 10px 2px 12px;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 640px) {
+  .ff-admin-notification-panel {
+    position: fixed;
+    top: 72px;
+    left: 16px;
+    right: 16px;
+    width: auto;
+    max-height: min(70vh, 480px);
+  }
+}
+
+.ff-btn-dark {
+  background: var(--ff-ink);
+  color: #fff;
+  border: 1px solid var(--ff-ink);
+  border-radius: var(--ff-r-md);
+  cursor: pointer;
+  transition: background-color 120ms, border-color 120ms, box-shadow 120ms, transform 120ms;
+}
+
+.ff-btn-dark:hover:not(:disabled) {
+  background: #1b2a48;
+  border-color: #1b2a48;
+  box-shadow: 0 8px 18px rgba(15, 30, 58, 0.14);
+}
+
+.ff-btn-dark:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 0 4px 10px rgba(15, 30, 58, 0.12);
+}
+
+.ff-btn-dark:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
 /* Display type — Fraunces serif for editorial headings */
 .ff-display {
   font-family: "Fraunces", "Instrument Serif", Georgia, serif;

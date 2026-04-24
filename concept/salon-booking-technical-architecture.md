@@ -69,8 +69,8 @@ Recommended:
 The frontend should expose separate route groups for public and admin usage.
 
 Example routes:
-- `/s/:salonSlug/book`
-- `/s/:salonSlug/confirmation`
+- `/:salonSlug`
+- `/:salonSlug/confirmation`
 - `/admin/login`
 - `/admin/dashboard`
 - `/admin/appointments`

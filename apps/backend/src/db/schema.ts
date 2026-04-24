@@ -12,6 +12,7 @@ import {
 } from 'drizzle-orm/pg-core';
 
 export const bookingStatusEnum = pgEnum('booking_status', ['pending', 'confirmed', 'cancelled', 'completed']);
+export const bookingOriginEnum = pgEnum('booking_origin', ['public', 'admin']);
 
 export const salons = pgTable(
   'salons',
@@ -49,6 +50,7 @@ export const admins = pgTable(
     firstName: text('first_name').notNull(),
     lastName: text('last_name').notNull(),
     active: boolean('active').notNull().default(true),
+    notificationsReadAt: timestamp('notifications_read_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
   },
@@ -110,6 +112,7 @@ export const bookings = pgTable(
       .notNull()
       .references(() => services.id, { onDelete: 'restrict' }),
     status: bookingStatusEnum('status').notNull().default('pending'),
+    origin: bookingOriginEnum('origin').notNull().default('public'),
     startsAt: timestamp('starts_at', { withTimezone: true, mode: 'date' }).notNull(),
     endsAt: timestamp('ends_at', { withTimezone: true, mode: 'date' }).notNull(),
     priceAmount: integer('price_amount').notNull(),
@@ -120,7 +123,11 @@ export const bookings = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
     cancelledAt: timestamp('cancelled_at', { withTimezone: true, mode: 'date' }),
   },
-  (table) => [index('bookings_salon_id_idx').on(table.salonId), index('bookings_starts_at_idx').on(table.startsAt)],
+  (table) => [
+    index('bookings_salon_id_idx').on(table.salonId),
+    index('bookings_starts_at_idx').on(table.startsAt),
+    index('bookings_salon_origin_created_at_idx').on(table.salonId, table.origin, table.createdAt),
+  ],
 );
 
 export const openingHours = pgTable(

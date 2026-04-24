@@ -1,9 +1,10 @@
 import { NgFor, NgIf } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnDestroy, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { AdminSetupApiService } from '../core/admin-setup-api.service';
+import { AdminNotificationsService } from '../core/admin-notifications.service';
 import type {
   AdminBookingCalendar,
   AdminBookingItem,
@@ -53,6 +54,13 @@ function getWeekDates(anchorDate: string): string[] {
   const weekdayIndex = getWeekdayIndex(anchorDate);
   const monday = addDays(anchorDate, -weekdayIndex);
   return Array.from({ length: 7 }, (_, index) => addDays(monday, index));
+}
+
+function getCompactWeekDates(anchorDate: string): string[] {
+  const fullWeek = getWeekDates(anchorDate);
+  const selectedIndex = fullWeek.indexOf(anchorDate);
+  const startIndex = Math.min(Math.max(selectedIndex - 1, 0), 4);
+  return fullWeek.slice(startIndex, startIndex + 3);
 }
 
 function formatDateLabel(value: string): string {
@@ -130,9 +138,16 @@ function createEmptyManualBookingForm(selectedDate: string): ManualBookingFormSt
   standalone: true,
   imports: [FormsModule, NgFor, NgIf, RouterLink],
   styles: [`
+    .ff-bookings-page { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+    .ff-bookings-toolbar { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .ff-bookings-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .ff-day-strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 28px; }
     .ff-week-day { border: 1px solid var(--ff-line); border-radius: var(--ff-r-lg); padding: 10px 8px; cursor: pointer; background: var(--ff-surface); transition: border-color 120ms, background 120ms; text-align: left; }
     .ff-week-day:hover { border-color: var(--ff-accent); }
     .ff-week-day.selected { border-color: var(--ff-accent); border-top: 3px solid var(--ff-accent); background: var(--ff-surface-alt); }
+    .ff-timeline-row { display: grid; grid-template-columns: 72px 1fr; border-top: 1px solid var(--ff-line); }
+    .ff-timeline-hour { font-size: 11px; color: var(--ff-ink-faint); padding: 14px 12px 14px 16px; display: flex; align-items: flex-start; padding-top: 16px; }
+    .ff-timeline-slot { padding: 8px 12px 8px 0; border-left: 1px solid var(--ff-line); min-height: 60px; }
     .ff-booking-block { border-radius: var(--ff-r-md); border: 1px solid var(--ff-line); padding: 8px 12px; cursor: pointer; transition: box-shadow 120ms; border-left-width: 3px; }
     .ff-booking-block:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
     .ff-booking-block.status-pending { background: var(--ff-warn-soft); border-left-color: var(--ff-warn); }
@@ -153,14 +168,30 @@ function createEmptyManualBookingForm(selectedDate: string): ManualBookingFormSt
     .ff-input:focus { border-color: var(--ff-accent); box-shadow: 0 0 0 3px var(--ff-accent-soft); }
     .ff-textarea { height: auto; padding: 10px 12px; resize: none; }
     .ff-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%238d8a94' d='M1 1l5 5 5-5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
-    .ff-btn { height: 36px; padding: 0 16px; border-radius: var(--ff-r-md); font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid var(--ff-line); background: var(--ff-surface); color: var(--ff-ink-muted); transition: all 120ms; }
+    .ff-btn { height: 36px; padding: 0 16px; border-radius: var(--ff-r-md); font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid var(--ff-line); background: var(--ff-surface); color: var(--ff-ink-muted); transition: border-color 120ms, color 120ms, background-color 120ms, box-shadow 120ms, transform 120ms; }
     .ff-btn:hover { border-color: var(--ff-line-strong); color: var(--ff-ink); }
     .ff-btn-primary { background: var(--ff-accent); color: #fff; border-color: var(--ff-accent); }
     .ff-btn-primary:hover { background: #13adb2; border-color: #13adb2; }
     .ff-btn-danger { background: var(--ff-bad-soft); color: var(--ff-bad); border-color: var(--ff-bad); }
     .ff-btn-ok { background: var(--ff-ok-soft); color: var(--ff-ok); border-color: var(--ff-ok); }
-    .ff-btn-ink { background: var(--ff-ink); color: var(--ff-bg); border-color: var(--ff-ink); }
-    .ff-btn-ink:hover { opacity: 0.88; }
+    .ff-btn-ink { background: var(--ff-ink); color: #fff; border-color: var(--ff-ink); }
+    .ff-btn-ink:hover { background: #1b2a48; border-color: #1b2a48; color: #fff; box-shadow: 0 8px 18px rgba(15, 30, 58, 0.14); }
+    .ff-btn-ink:active { transform: translateY(1px); box-shadow: 0 4px 10px rgba(15, 30, 58, 0.12); }
+    .ff-empty-slot-btn { width: 100%; min-height: 44px; background: transparent; border: none; cursor: pointer; text-align: left; padding: 4px 0 4px 14px; color: var(--ff-ink-faint); font-size: 12px; display: flex; align-items: center; gap: 6px; transition: color 120ms; }
+    .ff-empty-slot-btn:hover { color: var(--ff-accent); }
+    .ff-drawer { position: fixed; right: 0; top: 0; z-index: 50; height: 100%; width: 100%; max-width: 480px; background: var(--ff-surface); border-left: 1px solid var(--ff-line); box-shadow: -8px 0 32px rgba(15,30,58,0.10); overflow-y: auto; display: flex; flex-direction: column; }
+    .ff-drawer-split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .ff-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 760px) {
+      .ff-bookings-page { padding: 24px 16px; }
+      .ff-day-strip { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+      .ff-week-day { padding: 10px 6px; }
+      .ff-timeline-row { grid-template-columns: 58px 1fr; }
+      .ff-timeline-hour { padding: 12px 8px 12px 12px; }
+      .ff-timeline-slot { padding: 8px 8px 8px 0; min-height: 56px; }
+      .ff-drawer { max-width: none; width: 100vw; border-left: none; box-shadow: none; }
+      .ff-drawer-split, .ff-detail-grid { grid-template-columns: 1fr; }
+    }
   `],
   template: `
     <!-- Top navigation bar -->
@@ -178,6 +209,47 @@ function createEmptyManualBookingForm(selectedDate: string): ManualBookingFormSt
 
         <!-- Right actions -->
         <div style="display:flex; align-items:center; gap:8px;" *ngIf="authService.adminProfile() as profile">
+          <div class="ff-admin-notification-wrap">
+            <button type="button" (click)="toggleNotifications()" title="Benachrichtigungen" class="ff-admin-icon-btn">
+              <i class="pi pi-bell" style="font-size:13px;"></i>
+              <span *ngIf="notificationsService.unreadCount() > 0" class="ff-admin-notification-badge">{{ notificationBadgeLabel() }}</span>
+            </button>
+
+            <div *ngIf="notificationsService.dropdownOpen()" class="ff-admin-notification-panel">
+              <div style="padding:14px 16px;border-bottom:1px solid var(--ff-line);display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                <div>
+                  <p class="ff-mono" style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--ff-ink-faint);margin:0 0 4px;">Benachrichtigungen</p>
+                  <p style="font-size:13px;color:var(--ff-ink-muted);margin:0;">Neue Buchungsanfragen</p>
+                </div>
+                <button type="button" (click)="closeNotifications()" class="ff-admin-icon-btn" style="width:32px;height:32px;">
+                  <i class="pi pi-times" style="font-size:12px;"></i>
+                </button>
+              </div>
+
+              <div *ngIf="notificationsService.notifications().length === 0" style="padding:18px 16px;font-size:13px;color:var(--ff-ink-muted);">
+                Noch keine neuen Buchungsanfragen.
+              </div>
+
+              <a
+                *ngFor="let notification of notificationsService.notifications()"
+                routerLink="/admin"
+                [queryParams]="{ date: notificationDateQueryParam(notification.startsAt) }"
+                (click)="closeNotifications()"
+                class="ff-admin-notification-item"
+                [class.unread]="!notification.read"
+              >
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+                  <div style="min-width:0;">
+                    <p style="font-size:13px;font-weight:600;color:var(--ff-ink);margin:0 0 4px;">{{ notification.title }}</p>
+                    <p style="font-size:12px;line-height:1.45;color:var(--ff-ink-muted);margin:0;">{{ notification.message }}</p>
+                    <p class="ff-mono" style="font-size:10px;color:var(--ff-ink-faint);margin:8px 0 0;">{{ formatNotificationDateTime(notification.createdAt) }}</p>
+                  </div>
+                  <span *ngIf="!notification.read" style="width:8px;height:8px;border-radius:999px;background:var(--ff-accent);flex-shrink:0;margin-top:5px;"></span>
+                </div>
+              </a>
+            </div>
+          </div>
+
           <span style="font-size:13px; color:var(--ff-ink-muted);">{{ profile.admin.firstName }} {{ profile.admin.lastName }}</span>
           <button type="button" (click)="reload()" title="Aktualisieren" class="ff-admin-icon-btn">
             <i class="pi pi-refresh" style="font-size:13px;"></i>
@@ -190,7 +262,7 @@ function createEmptyManualBookingForm(selectedDate: string): ManualBookingFormSt
     </header>
 
     <main style="min-height:calc(100vh - 56px); background:var(--ff-bg);">
-      <div style="max-width:1200px; margin:0 auto; padding:32px 24px;">
+      <div class="ff-bookings-page">
 
         <!-- Status / error banners -->
         <div *ngIf="statusMessage()" style="margin-bottom:16px; padding:12px 16px; border:1px solid var(--ff-ok); border-left:3px solid var(--ff-ok); border-radius:var(--ff-r-md); background:var(--ff-ok-soft); font-size:13px; color:var(--ff-ok);">
@@ -210,14 +282,14 @@ function createEmptyManualBookingForm(selectedDate: string): ManualBookingFormSt
           <!-- Date header -->
           <div style="margin-bottom:24px;">
             <p class="ff-mono" style="font-size:10px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ff-ink-faint); margin:0 0 8px;">Tagesplan</p>
-            <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+            <div class="ff-bookings-toolbar">
               <div>
                 <h1 class="ff-display" style="font-size:36px; font-weight:400; letter-spacing:-0.01em; color:var(--ff-ink); margin:0 0 4px;">{{ formatLongDate(selectedDate()) }}</h1>
                 <p class="ff-mono" style="font-size:12px; color:var(--ff-ink-faint);">
                   KW {{ getKW(selectedDate()) }} &nbsp;·&nbsp; {{ bookings().length }} Termine
                 </p>
               </div>
-              <div style="display:flex; align-items:center; gap:8px;">
+              <div class="ff-bookings-actions">
                 <button type="button" (click)="moveSelectedDate(-1)" class="ff-btn">‹ Zurück</button>
                 <button type="button" (click)="jumpToToday()" class="ff-btn">Heute</button>
                 <button type="button" (click)="moveSelectedDate(1)" class="ff-btn">Vor ›</button>
@@ -229,9 +301,9 @@ function createEmptyManualBookingForm(selectedDate: string): ManualBookingFormSt
           </div>
 
           <!-- Week scrubber -->
-          <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:8px; margin-bottom:28px;">
+          <div class="ff-day-strip">
             <button
-              *ngFor="let day of weekDates()"
+              *ngFor="let day of visibleWeekDates()"
               type="button"
               (click)="setSelectedDate(day)"
               class="ff-week-day"
@@ -254,12 +326,12 @@ function createEmptyManualBookingForm(selectedDate: string): ManualBookingFormSt
 
             <!-- Timeline rows -->
             <div *ngFor="let row of timelineRows(); let i = index"
-              style="display:grid; grid-template-columns:72px 1fr; border-top:1px solid var(--ff-line);"
+              class="ff-timeline-row"
               [style.border-top]="i === 0 ? 'none' : '1px solid var(--ff-line)'">
               <!-- Hour label -->
-              <div class="ff-mono" style="font-size:11px; color:var(--ff-ink-faint); padding:14px 12px 14px 16px; display:flex; align-items:flex-start; padding-top:16px;">{{ row.label }}</div>
+              <div class="ff-mono ff-timeline-hour">{{ row.label }}</div>
               <!-- Slot content -->
-              <div style="padding:8px 12px 8px 0; border-left:1px solid var(--ff-line); min-height:60px;">
+              <div class="ff-timeline-slot">
                 <div *ngIf="bookingAt(row.time) as booking; else emptySlot">
                   <button
                     type="button"
@@ -280,9 +352,7 @@ function createEmptyManualBookingForm(selectedDate: string): ManualBookingFormSt
                   <button
                     type="button"
                     (click)="openCreateDrawer(row.time)"
-                    style="width:100%; min-height:44px; background:transparent; border:none; cursor:pointer; text-align:left; padding:4px 0 4px 14px; color:var(--ff-ink-faint); font-size:12px; display:flex; align-items:center; gap:6px; transition:color 120ms;"
-                    onmouseenter="this.style.color='var(--ff-accent)'"
-                    onmouseleave="this.style.color='var(--ff-ink-faint)'"
+                    class="ff-empty-slot-btn"
                   >
                     <i class="pi pi-plus-circle" style="font-size:12px;"></i>
                     <span class="ff-mono" style="font-size:11px; letter-spacing:0.1em;">Verfügbar</span>
@@ -302,8 +372,7 @@ function createEmptyManualBookingForm(selectedDate: string): ManualBookingFormSt
       (click)="closeDrawers()"></div>
 
     <!-- Create booking drawer -->
-    <aside *ngIf="createDrawerOpen()"
-      style="position:fixed; right:0; top:0; z-index:50; height:100%; width:100%; max-width:480px; background:var(--ff-surface); border-left:1px solid var(--ff-line); box-shadow:-8px 0 32px rgba(15,30,58,0.10); overflow-y:auto; display:flex; flex-direction:column;">
+    <aside *ngIf="createDrawerOpen()" class="ff-drawer">
       <!-- Drawer header -->
       <div style="padding:20px 24px; border-bottom:1px solid var(--ff-line); display:flex; align-items:center; justify-content:space-between;">
         <div>
@@ -327,7 +396,7 @@ function createEmptyManualBookingForm(selectedDate: string): ManualBookingFormSt
           <label class="ff-mono" style="display:block; font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:var(--ff-ink-faint); margin-bottom:6px;">Startzeit</label>
           <input [(ngModel)]="manualBookingForm.startsAt" name="startsAt" type="datetime-local" required class="ff-input" />
         </div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="ff-drawer-split">
           <div>
             <label class="ff-mono" style="display:block; font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:var(--ff-ink-faint); margin-bottom:6px;">Vorname</label>
             <input [(ngModel)]="manualBookingForm.firstName" name="firstName" required class="ff-input" />
@@ -337,7 +406,7 @@ function createEmptyManualBookingForm(selectedDate: string): ManualBookingFormSt
             <input [(ngModel)]="manualBookingForm.lastName" name="lastName" required class="ff-input" />
           </div>
         </div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="ff-drawer-split">
           <div>
             <label class="ff-mono" style="display:block; font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:var(--ff-ink-faint); margin-bottom:6px;">E-Mail</label>
             <input [(ngModel)]="manualBookingForm.email" name="email" type="email" class="ff-input" />
@@ -362,8 +431,7 @@ function createEmptyManualBookingForm(selectedDate: string): ManualBookingFormSt
     </aside>
 
     <!-- Detail drawer -->
-    <aside *ngIf="detailDrawerOpen() && selectedBooking() as booking"
-      style="position:fixed; right:0; top:0; z-index:50; height:100%; width:100%; max-width:480px; background:var(--ff-surface); border-left:1px solid var(--ff-line); box-shadow:-8px 0 32px rgba(15,30,58,0.10); overflow-y:auto; display:flex; flex-direction:column;">
+    <aside *ngIf="detailDrawerOpen() && selectedBooking() as booking" class="ff-drawer">
       <!-- Header -->
       <div style="padding:20px 24px; border-bottom:1px solid var(--ff-line); display:flex; align-items:center; justify-content:space-between;">
         <div>
@@ -389,7 +457,7 @@ function createEmptyManualBookingForm(selectedDate: string): ManualBookingFormSt
         </div>
 
         <!-- Customer info -->
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="ff-detail-grid">
           <div style="background:var(--ff-bg); border:1px solid var(--ff-line); border-radius:var(--ff-r-md); padding:14px;">
             <p class="ff-mono" style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:var(--ff-ink-faint); margin:0 0 6px;">E-Mail</p>
             <p style="font-size:13px; color:var(--ff-ink); margin:0;">{{ booking.customer.email || '—' }}</p>
@@ -422,10 +490,14 @@ function createEmptyManualBookingForm(selectedDate: string): ManualBookingFormSt
     </aside>
   `,
 })
-export class AdminBookingsPage {
+export class AdminBookingsPage implements OnDestroy {
   readonly authService = inject(AuthService);
+  readonly notificationsService = inject(AdminNotificationsService);
   private readonly adminSetupApi = inject(AdminSetupApiService);
+  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly compactCalendarMedia = typeof window !== 'undefined' ? window.matchMedia('(max-width: 760px)') : null;
+  private readonly handleCompactCalendarChange = (event: MediaQueryListEvent) => this.isCompactCalendar.set(event.matches);
 
   readonly loading = signal(true);
   readonly loadError = signal<string | null>(null);
@@ -433,6 +505,7 @@ export class AdminBookingsPage {
   readonly savingManualBooking = signal(false);
   readonly createDrawerOpen = signal(false);
   readonly detailDrawerOpen = signal(false);
+  readonly isCompactCalendar = signal(false);
   readonly selectedDate = signal(getTodayIsoDate());
   readonly salon = signal<SalonProfile | null>(null);
   readonly services = signal<ServiceItem[]>([]);
@@ -442,9 +515,26 @@ export class AdminBookingsPage {
   readonly selectedBooking = signal<AdminBookingItem | null>(null);
 
   manualBookingForm: ManualBookingFormState = createEmptyManualBookingForm(getTodayIsoDate());
+  private hasInitializedFromRoute = false;
 
   constructor() {
-    void this.reload();
+    this.isCompactCalendar.set(this.compactCalendarMedia?.matches ?? false);
+    this.compactCalendarMedia?.addEventListener('change', this.handleCompactCalendarChange);
+    this.notificationsService.ensurePolling();
+    this.route.queryParamMap.subscribe((params) => {
+      const queryDate = params.get('date');
+      const nextDate = this.isValidIsoDate(queryDate) ? queryDate : getTodayIsoDate();
+
+      if (!this.hasInitializedFromRoute || nextDate !== this.selectedDate()) {
+        this.selectedDate.set(nextDate);
+        this.hasInitializedFromRoute = true;
+        void this.reload();
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.compactCalendarMedia?.removeEventListener('change', this.handleCompactCalendarChange);
   }
 
   async reload(): Promise<void> {
@@ -497,6 +587,10 @@ export class AdminBookingsPage {
 
   weekDates(): string[] {
     return getWeekDates(this.selectedDate());
+  }
+
+  visibleWeekDates(): string[] {
+    return this.isCompactCalendar() ? getCompactWeekDates(this.selectedDate()) : this.weekDates();
   }
 
   timelineRows(): TimelineRow[] {
@@ -627,6 +721,32 @@ export class AdminBookingsPage {
     await this.authService.signOut();
   }
 
+  async toggleNotifications(): Promise<void> {
+    await this.notificationsService.toggleDropdown();
+  }
+
+  closeNotifications(): void {
+    this.notificationsService.closeDropdown();
+  }
+
+  notificationBadgeLabel(): string {
+    const unreadCount = this.notificationsService.unreadCount();
+    return unreadCount > 9 ? '9+' : String(unreadCount);
+  }
+
+  notificationDateQueryParam(value: string): string {
+    return value.slice(0, 10);
+  }
+
+  formatNotificationDateTime(value: string): string {
+    return new Intl.DateTimeFormat('de-CH', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(new Date(value));
+  }
+
   formatDate(value: string): string {
     return formatDateLabel(value);
   }
@@ -675,5 +795,9 @@ export class AdminBookingsPage {
   private optionalValue(value: string): string | undefined {
     const trimmed = value.trim();
     return trimmed.length > 0 ? trimmed : undefined;
+  }
+
+  private isValidIsoDate(value: string | null): value is string {
+    return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
   }
 }

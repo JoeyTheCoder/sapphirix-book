@@ -13,10 +13,6 @@ export const routes: Routes = [
 		redirectTo: 'admin/login',
 	},
 	{
-		path: 's/:salonSlug/book',
-		component: PublicBookingPage,
-	},
-	{
 		path: 'admin/login',
 		component: AdminLoginPage,
 	},
@@ -29,6 +25,14 @@ export const routes: Routes = [
 		path: 'admin/settings',
 		component: AdminShellPage,
 		canActivate: [adminAuthGuard],
+	},
+	{
+		path: 's/:salonSlug/book',
+		redirectTo: ':salonSlug',
+	},
+	{
+		path: ':salonSlug',
+		component: PublicBookingPage,
 	},
 	{
 		path: '**',

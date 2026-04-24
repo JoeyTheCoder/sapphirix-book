@@ -221,7 +221,7 @@ async function main() {
   console.log(`Firebase user: ${firebaseCreated ? 'created' : 'reused'} (${user.email})`);
   console.log(`Admin record: ${adminCreated ? 'created' : 'reused'} (${admin.email})`);
   console.log(`Admin login URL: ${env.PUBLIC_APP_ORIGIN}/admin/login`);
-  console.log(`Public booking URL: ${env.PUBLIC_APP_ORIGIN}/s/${salon.slug}/book`);
+  console.log(`Public booking URL: ${env.PUBLIC_APP_ORIGIN}/${salon.slug}`);
   console.log(`Firebase UID: ${user.uid}`);
 }
 

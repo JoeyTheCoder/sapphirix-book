@@ -427,7 +427,7 @@ Use this file as a shared working list: we can reorder stories, split them, or r
 
 ### Decisions To Make
 
-- [ ] Route structure: Keep `/s/:salonSlug/book` and `/s/:salonSlug/confirmation`, or use a single booking route only?
+- [ ] Route structure: Keep `/:salonSlug` and a separate confirmation route, or use a single booking route only?
 - [ ] Flow style: One-page booking flow or step-by-step flow?
 - [ ] Required fields: `name + phone`, or `name + email`, or all three?
 - [ ] Email field: Optional in MVP or required?
@@ -463,7 +463,7 @@ Use this file as a shared working list: we can reorder stories, split them, or r
 
 - Before testing, run `pnpm --filter backend db:migrate` so PostgreSQL gets the new `pending` booking status and the new `booking_buffer_minutes` salon setting.
 - Start backend and frontend and make sure both apps boot without errors.
-- Open a real public salon URL like `/s/<salonSlug>/book` and confirm the correct salon data and services load.
+- Open a real public salon URL like `/<salonSlug>` and confirm the correct salon data and services load.
 - Confirm the customer calendar preview loads and visually distinguishes bookable vs non-bookable days for the current range.
 - Pick a service and a date and confirm only valid slots are shown.
 - Create one booking and confirm the success page shows the right summary.
@@ -926,9 +926,9 @@ Use a separate test salon tenant in production for final checks.
 
 Domain shape:
 Use one shared app domain first, for example:
-app.yourbrand.ch/s/salon-slug
+app.yourbrand.ch/salon-slug
 or
-booking.yourbrand.ch/s/salon-slug
+booking.yourbrand.ch/salon-slug
 Custom domains per salon should wait.
 
 Backups:

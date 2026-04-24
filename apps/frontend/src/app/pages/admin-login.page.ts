@@ -28,23 +28,6 @@ import { AuthService } from '../core/auth.service';
       box-shadow: 0 0 0 3px var(--ff-accent-soft);
     }
     .ff-input.error { border-color: var(--ff-bad); }
-    .ff-btn-primary {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 44px;
-      background: var(--ff-ink);
-      color: var(--ff-bg);
-      border: none;
-      border-radius: var(--ff-r-md);
-      font-size: 13.5px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: opacity 150ms;
-    }
-    .ff-btn-primary:hover:not(:disabled) { opacity: 0.88; }
-    .ff-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
   `],
   template: `
     <main style="min-height:100vh;background:radial-gradient(circle at top left, rgba(22,193,198,0.12), transparent 26%), radial-gradient(circle at top right, rgba(15,30,58,0.08), transparent 22%), var(--ff-bg);display:flex;align-items:center;justify-content:center;padding:32px 20px;">
@@ -96,7 +79,7 @@ import { AuthService } from '../core/auth.service';
               />
             </div>
 
-            <button type="submit" class="ff-btn-primary" [disabled]="submitting() || !authService.isFirebaseConfigured()" style="margin-top:4px;">
+            <button type="submit" class="ff-btn-dark" [disabled]="submitting() || !authService.isFirebaseConfigured()" style="margin-top:4px;width:100%;height:44px;font-size:13.5px;font-weight:500;display:flex;align-items:center;justify-content:center;gap:8px;">
               <i *ngIf="submitting()" class="pi pi-spin pi-spinner" style="margin-right:8px;"></i>
               {{ submitting() ? 'Anmelden…' : 'Anmelden' }}
             </button>

@@ -7,6 +7,7 @@ import type {
   AdminBookingCalendar,
   AdminBookingItem,
   AdminBookingPayload,
+  AdminNotificationsResponse,
   AdminBookingStatus,
   OpeningHourSlot,
   ReplaceOpeningHoursPayload,
@@ -43,6 +44,16 @@ export class AdminSetupApiService {
     const headers = await this.createAuthHeaders();
     const response = await firstValueFrom(this.http.get<{ salon: SalonProfile }>(`${adminApiBaseUrl}/salon`, { headers }));
     return response.salon;
+  }
+
+  async getNotifications(): Promise<AdminNotificationsResponse> {
+    const headers = await this.createAuthHeaders();
+    return firstValueFrom(this.http.get<AdminNotificationsResponse>(`${adminApiBaseUrl}/notifications`, { headers }));
+  }
+
+  async markNotificationsAsRead(): Promise<void> {
+    const headers = await this.createAuthHeaders();
+    await firstValueFrom(this.http.post(`${adminApiBaseUrl}/notifications/read`, {}, { headers }));
   }
 
   async updateSalon(payload: SalonProfilePayload): Promise<SalonProfile> {

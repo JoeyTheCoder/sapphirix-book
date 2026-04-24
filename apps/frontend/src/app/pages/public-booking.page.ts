@@ -23,6 +23,8 @@ type BookingFormState = {
   notes: string;
 };
 
+type BookingFormField = 'firstName' | 'lastName' | 'email' | 'phone';
+
 const weekdayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 function formatMoney(amount: number, currency: string): string {
@@ -108,13 +110,33 @@ function readErrorMessage(error: unknown, fallbackMessage: string): string {
   selector: 'app-public-booking-page',
   standalone: true,
   imports: [FormsModule, NgFor, NgIf, TurnstileWidgetComponent],
+  styles: [`
+    .ff-public-header-inner { max-width: 720px; margin: 0 auto; display: flex; align-items: center; gap: 14px; }
+    .ff-public-page { max-width: 720px; margin: 0 auto; padding: 40px 24px; }
+    .ff-public-step-indicator { display: flex; gap: 16px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ff-ink-faint); }
+    .ff-public-confirm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .ff-public-month-nav { display: flex; align-items: center; gap: 8px; }
+    .ff-public-slot-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .ff-public-summary { background: var(--ff-bg-muted); border-radius: var(--ff-r-md); padding: 14px 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+    .ff-public-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .ff-public-form-span { grid-column: span 2; }
+    @media (max-width: 760px) {
+      .ff-public-header-inner { align-items: flex-start; }
+      .ff-public-page { padding: 24px 16px 32px; }
+      .ff-public-step-indicator { gap: 10px; overflow-x: auto; padding-bottom: 2px; }
+      .ff-public-confirm-grid, .ff-public-form-grid { grid-template-columns: 1fr; }
+      .ff-public-form-span { grid-column: span 1; }
+      .ff-public-summary { flex-direction: column; align-items: flex-start; }
+      .ff-public-month-nav { width: 100%; justify-content: space-between; }
+    }
+  `],
   template: `
     <!-- FadeFlow public booking page -->
     <div style="min-height:100vh;background:var(--ff-bg);">
 
       <!-- Header -->
       <header style="background:var(--ff-surface);border-bottom:1px solid var(--ff-line);padding:16px 24px;">
-        <div style="max-width:720px;margin:0 auto;display:flex;align-items:center;gap:14px;">
+        <div class="ff-public-header-inner">
           <div style="width:48px;height:48px;border-radius:var(--ff-r-md);border:1px solid var(--ff-line);overflow:hidden;display:flex;align-items:center;justify-content:center;background:var(--ff-bg-muted);flex-shrink:0;">
             <img *ngIf="logoUrl()" [src]="logoUrl()!" alt="Logo" style="width:48px;height:48px;object-fit:cover;" />
             <img *ngIf="!logoUrl()" src="assets/images/logo-notext.png" alt="FadeFlow" style="width:32px;height:32px;object-fit:contain;" />
@@ -135,7 +157,7 @@ function readErrorMessage(error: unknown, fallbackMessage: string): string {
       </div>
 
       <!-- Main content -->
-      <div *ngIf="!loading() && salon()" style="max-width:720px;margin:0 auto;padding:40px 24px;">
+      <div *ngIf="!loading() && salon()" class="ff-public-page">
 
         <!-- Heading -->
         <div style="margin-bottom:40px;">
@@ -143,14 +165,14 @@ function readErrorMessage(error: unknown, fallbackMessage: string): string {
             Termin in <em style="color:var(--ff-accent);font-style:italic;">vier Schritten</em> buchen.
           </h2>
           <!-- Step indicator -->
-          <div class="ff-mono" style="display:flex;gap:16px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--ff-ink-faint);">
+          <div class="ff-mono ff-public-step-indicator">
             <span [style.color]="currentStep() >= 1 ? 'var(--ff-accent-text)' : 'var(--ff-ink-faint)'">01 Leistung</span>
             <span style="color:var(--ff-line-strong);">→</span>
             <span [style.color]="currentStep() >= 2 ? 'var(--ff-accent-text)' : 'var(--ff-ink-faint)'">02 Datum</span>
             <span style="color:var(--ff-line-strong);">→</span>
             <span [style.color]="currentStep() >= 3 ? 'var(--ff-accent-text)' : 'var(--ff-ink-faint)'">03 Zeit</span>
             <span style="color:var(--ff-line-strong);">→</span>
-            <span [style.color]="currentStep() >= 4 ? 'var(--ff-accent-text)' : 'var(--ff-ink-faint)'">04 Sie</span>
+            <span [style.color]="currentStep() >= 4 ? 'var(--ff-accent-text)' : 'var(--ff-ink-faint)'">04 Personalien</span>
           </div>
         </div>
 
@@ -160,7 +182,7 @@ function readErrorMessage(error: unknown, fallbackMessage: string): string {
           <p class="ff-mono" style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.2em;color:var(--ff-ok);margin:0 0 8px 0;">BUCHUNG EINGEGANGEN</p>
           <h3 class="ff-display" style="font-size:22px;color:var(--ff-ink);margin:0 0 16px 0;">Anfrage gesendet!</h3>
           <p style="font-size:13px;color:var(--ff-ink-muted);margin:0 0 16px 0;">Deine Buchungsanfrage ist eingegangen und wird vom Salon bestätigt.</p>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="ff-public-confirm-grid">
             <div>
               <p class="ff-mono" style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--ff-ink-muted);margin:0 0 4px 0;">Leistung</p>
               <p style="font-size:14px;font-weight:600;color:var(--ff-ink);margin:0;">{{ booking.service.name }}</p>
@@ -212,7 +234,7 @@ function readErrorMessage(error: unknown, fallbackMessage: string): string {
                 [style.color]="currentStep() >= 2 ? '#fff' : 'var(--ff-ink-muted)'">02</span>
               <h3 style="font-size:14px;font-weight:600;color:var(--ff-ink);margin:0;">Datum wählen</h3>
             </div>
-            <div *ngIf="calendarPreview()" style="display:flex;align-items:center;gap:8px;">
+            <div *ngIf="calendarPreview()" class="ff-public-month-nav">
               <button type="button" (click)="prevMonth()"
                 style="width:28px;height:28px;border-radius:50%;border:1px solid var(--ff-line);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ff-ink-muted);">
                 <i class="pi pi-angle-left" style="font-size:12px;"></i>
@@ -271,7 +293,7 @@ function readErrorMessage(error: unknown, fallbackMessage: string): string {
               <i class="pi pi-spin pi-spinner" style="margin-right:8px;"></i>Zeiten werden geladen…
             </div>
             <div *ngIf="availabilityError()" style="font-size:13px;color:var(--ff-bad);margin-bottom:8px;">{{ availabilityError() }}</div>
-            <div *ngIf="!availabilityLoading() && availableSlots().length > 0" style="display:flex;flex-wrap:wrap;gap:8px;">
+            <div *ngIf="!availabilityLoading() && availableSlots().length > 0" class="ff-public-slot-list">
               <button *ngFor="let slot of availableSlots()" type="button"
                 (click)="selectSlot(slot)"
                 class="ff-mono"
@@ -299,7 +321,7 @@ function readErrorMessage(error: unknown, fallbackMessage: string): string {
           </div>
           <div *ngIf="currentStep() >= 4" style="padding:20px;">
             <!-- Booking summary -->
-            <div style="background:var(--ff-bg-muted);border-radius:var(--ff-r-md);padding:14px 16px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;gap:16px;">
+            <div class="ff-public-summary">
               <div>
                 <p style="font-size:13px;font-weight:600;color:var(--ff-ink);margin:0;">{{ selectedService()?.name }}</p>
                 <p class="ff-mono" style="font-size:11px;color:var(--ff-ink-muted);margin:3px 0 0 0;">{{ formatDateTimeValue(selectedSlot()?.startsAt ?? '') }}</p>
@@ -314,24 +336,28 @@ function readErrorMessage(error: unknown, fallbackMessage: string): string {
               <div *ngIf="submitError()" style="background:var(--ff-bad-soft);border:1px solid var(--ff-bad);border-radius:var(--ff-r-sm);padding:10px 14px;font-size:13px;color:var(--ff-bad);margin-bottom:16px;">
                 {{ submitError() }}
               </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+              <div class="ff-public-form-grid">
                 <div>
                   <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Vorname</label>
-                  <input [(ngModel)]="bookingForm.firstName" name="firstName" required class="ff-input" style="width:100%;box-sizing:border-box;" />
+                  <input [(ngModel)]="bookingForm.firstName" (ngModelChange)="clearFieldError('firstName')" name="firstName" required class="ff-input" style="width:100%;box-sizing:border-box;" [style.border-color]="fieldError('firstName') ? 'var(--ff-bad)' : null" [style.box-shadow]="fieldError('firstName') ? '0 0 0 3px rgba(220, 38, 38, 0.12)' : null" />
+                  <p *ngIf="fieldError('firstName')" style="margin:6px 0 0;font-size:12px;color:var(--ff-bad);">{{ fieldError('firstName') }}</p>
                 </div>
                 <div>
                   <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Nachname</label>
-                  <input [(ngModel)]="bookingForm.lastName" name="lastName" required class="ff-input" style="width:100%;box-sizing:border-box;" />
+                  <input [(ngModel)]="bookingForm.lastName" (ngModelChange)="clearFieldError('lastName')" name="lastName" required class="ff-input" style="width:100%;box-sizing:border-box;" [style.border-color]="fieldError('lastName') ? 'var(--ff-bad)' : null" [style.box-shadow]="fieldError('lastName') ? '0 0 0 3px rgba(220, 38, 38, 0.12)' : null" />
+                  <p *ngIf="fieldError('lastName')" style="margin:6px 0 0;font-size:12px;color:var(--ff-bad);">{{ fieldError('lastName') }}</p>
                 </div>
                 <div>
                   <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">E-Mail</label>
-                  <input [(ngModel)]="bookingForm.email" name="email" type="email" required class="ff-input" style="width:100%;box-sizing:border-box;" />
+                  <input [(ngModel)]="bookingForm.email" (ngModelChange)="clearFieldError('email')" name="email" type="email" required class="ff-input" style="width:100%;box-sizing:border-box;" [style.border-color]="fieldError('email') ? 'var(--ff-bad)' : null" [style.box-shadow]="fieldError('email') ? '0 0 0 3px rgba(220, 38, 38, 0.12)' : null" />
+                  <p *ngIf="fieldError('email')" style="margin:6px 0 0;font-size:12px;color:var(--ff-bad);">{{ fieldError('email') }}</p>
                 </div>
                 <div>
                   <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Telefon</label>
-                  <input [(ngModel)]="bookingForm.phone" name="phone" required class="ff-input" style="width:100%;box-sizing:border-box;" />
+                  <input [(ngModel)]="bookingForm.phone" (ngModelChange)="clearFieldError('phone')" name="phone" required class="ff-input" style="width:100%;box-sizing:border-box;" [style.border-color]="fieldError('phone') ? 'var(--ff-bad)' : null" [style.box-shadow]="fieldError('phone') ? '0 0 0 3px rgba(220, 38, 38, 0.12)' : null" />
+                  <p *ngIf="fieldError('phone')" style="margin:6px 0 0;font-size:12px;color:var(--ff-bad);">{{ fieldError('phone') }}</p>
                 </div>
-                <div style="grid-column:span 2;">
+                <div class="ff-public-form-span">
                   <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Hinweise (optional)</label>
                   <textarea [(ngModel)]="bookingForm.notes" name="notes" rows="3" class="ff-input" style="width:100%;box-sizing:border-box;resize:vertical;"></textarea>
                 </div>
@@ -343,8 +369,8 @@ function readErrorMessage(error: unknown, fallbackMessage: string): string {
                   (tokenChange)="onBotProtectionTokenChange($event)"
                 />
               </div>
-              <button type="submit"
-                style="margin-top:20px;width:100%;padding:14px;background:var(--ff-ink);color:#fff;border:none;border-radius:var(--ff-r-md);font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;"
+              <button type="submit" class="ff-btn-dark"
+                style="margin-top:20px;width:100%;padding:14px;font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;"
                 [disabled]="submitting() || !canSubmit()">
                 <i [class]="submitting() ? 'pi pi-spin pi-spinner' : 'pi pi-send'" style="font-size:14px;"></i>
                 <span>{{ submitting() ? 'Wird gesendet…' : 'Buchungsanfrage senden' }}</span>
@@ -371,6 +397,7 @@ export class PublicBookingPage {
   readonly availabilityError = signal<string | null>(null);
   readonly submitting = signal(false);
   readonly submitError = signal<string | null>(null);
+  readonly formErrors = signal<Partial<Record<BookingFormField, string>>>({});
   readonly salon = signal<PublicSalon | null>(null);
   readonly services = signal<PublicService[]>([]);
   readonly calendarPreview = signal<AvailabilityCalendarPreviewResult | null>(null);
@@ -558,15 +585,7 @@ export class PublicBookingPage {
   }
 
   canSubmit(): boolean {
-    return Boolean(
-      this.selectedServiceId() &&
-        this.selectedSlot() &&
-        this.bookingForm.firstName.trim() &&
-        this.bookingForm.lastName.trim() &&
-        this.bookingForm.email.trim() &&
-        this.bookingForm.phone.trim() &&
-        (!this.botProtectionEnabled() || this.botProtectionToken()),
-    );
+    return Boolean(this.selectedServiceId() && this.selectedSlot());
   }
 
   botProtectionEnabled(): boolean {
@@ -581,12 +600,42 @@ export class PublicBookingPage {
     this.botProtectionToken.set(token);
   }
 
+  fieldError(field: BookingFormField): string | null {
+    return this.formErrors()[field] ?? null;
+  }
+
+  clearFieldError(field: BookingFormField): void {
+    if (!this.formErrors()[field]) {
+      return;
+    }
+
+    this.formErrors.update((current) => ({
+      ...current,
+      [field]: undefined,
+    }));
+  }
+
   async submit(): Promise<void> {
     const salon = this.salon();
     const selectedSlot = this.selectedSlot();
     const selectedServiceId = this.selectedServiceId();
 
     if (!salon || !selectedSlot || !selectedServiceId) {
+      return;
+    }
+
+    const formErrors = this.validateBookingForm();
+
+    if (Object.keys(formErrors).length > 0) {
+      this.formErrors.set(formErrors);
+      this.submitError.set('Bitte prüfe die markierten Felder.');
+      return;
+    }
+
+    this.formErrors.set({});
+
+    if (this.botProtectionEnabled() && !this.botProtectionToken()) {
+      this.submitError.set('Bitte bestätige zuerst die Sicherheitsprüfung.');
       return;
     }
 
@@ -611,6 +660,7 @@ export class PublicBookingPage {
       this.completedBooking.set(booking);
       this.selectedSlot.set(null);
       this.bookingForm.notes = '';
+      this.formErrors.set({});
       this.turnstileWidget?.reset();
       this.botProtectionToken.set(null);
       await this.loadCalendarPreview(false);
@@ -634,6 +684,34 @@ export class PublicBookingPage {
 
   formatDateTimeValue(value: string): string {
     return formatDateTime(value);
+  }
+
+  private validateBookingForm(): Partial<Record<BookingFormField, string>> {
+    const errors: Partial<Record<BookingFormField, string>> = {};
+
+    if (!this.bookingForm.firstName.trim()) {
+      errors.firstName = 'Bitte gib deinen Vornamen ein.';
+    }
+
+    if (!this.bookingForm.lastName.trim()) {
+      errors.lastName = 'Bitte gib deinen Nachnamen ein.';
+    }
+
+    if (!this.bookingForm.email.trim()) {
+      errors.email = 'Bitte gib deine E-Mail-Adresse ein.';
+    } else if (!this.isValidEmail(this.bookingForm.email)) {
+      errors.email = 'Bitte gib eine gueltige E-Mail-Adresse ein.';
+    }
+
+    if (!this.bookingForm.phone.trim()) {
+      errors.phone = 'Bitte gib deine Telefonnummer ein.';
+    }
+
+    return errors;
+  }
+
+  private isValidEmail(value: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
   }
 
   private async loadPage(): Promise<void> {

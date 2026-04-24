@@ -74,6 +74,24 @@ export type AdminBookingCalendar = {
   bookings: AdminBookingItem[];
 };
 
+export type AdminNotificationItem = {
+  id: string;
+  type: 'new_booking_request';
+  title: string;
+  message: string;
+  createdAt: string;
+  read: boolean;
+  bookingId: string;
+  startsAt: string;
+  customerName: string;
+  serviceName: string;
+};
+
+export type AdminNotificationsResponse = {
+  unreadCount: number;
+  notifications: AdminNotificationItem[];
+};
+
 export type AdminBookingPayload = {
   serviceId: string;
   startsAt: string;

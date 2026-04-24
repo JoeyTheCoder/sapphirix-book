@@ -372,6 +372,7 @@ async function insertCustomerAndBooking(
   service: ServiceRecord,
   input: CreateBookingInput,
   status: 'pending' | 'confirmed',
+  origin: 'public' | 'admin',
 ) {
   const startsAt = new Date(input.startsAt);
 
@@ -418,6 +419,7 @@ async function insertCustomerAndBooking(
       customerId: customer.id,
       serviceId: service.id,
       status,
+      origin,
       startsAt,
       endsAt,
       priceAmount: service.priceAmount,
@@ -569,7 +571,7 @@ export async function getAvailabilityCalendarPreview(query: { salonSlug: string;
 export async function createBooking(input: CreateBookingInput) {
   const salon = await getSalonBySlugOrThrow(input.salonSlug);
   const service = await getServiceForSalonOrThrow(input.serviceId, salon.id);
-  return insertCustomerAndBooking(salon, service, input, 'pending');
+  return insertCustomerAndBooking(salon, service, input, 'pending', 'public');
 }
 
 export async function createAdminBookingForSalon(salonId: string, input: CreateAdminBookingInput) {
@@ -612,6 +614,7 @@ export async function createAdminBookingForSalon(salonId: string, input: CreateA
       customerId: customer.id,
       serviceId: service.id,
       status: 'confirmed',
+      origin: 'admin',
       startsAt,
       endsAt,
       priceAmount: service.priceAmount,

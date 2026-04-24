@@ -29,6 +29,7 @@ import {
   updateSalonProfile,
   updateService,
 } from '../modules/admin/admin-setup.service.js';
+import { listNotificationsForAdmin, markNotificationsAsRead } from '../modules/admin/admin-notifications.service.js';
 import {
   createAdminBookingForSalon,
   getBookingDetailForSalon,
@@ -64,6 +65,27 @@ export function createAdminRouter(): Router {
 
   router.get('/me', (req, res) => {
     res.json(res.locals.adminContext);
+  });
+
+  router.get('/notifications', async (_req, res, next) => {
+    try {
+      const result = await listNotificationsForAdmin(
+        res.locals.adminContext.admin.id,
+        res.locals.adminContext.salon.id,
+      );
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post('/notifications/read', async (_req, res, next) => {
+    try {
+      const result = await markNotificationsAsRead(res.locals.adminContext.admin.id);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
   });
 
   router.get('/salon', async (_req, res, next) => {

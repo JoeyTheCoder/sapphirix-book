@@ -4,6 +4,7 @@ import { NgFor, NgIf } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 
 import { AdminSetupApiService } from '../core/admin-setup-api.service';
+import { AdminNotificationsService } from '../core/admin-notifications.service';
 import type { AdminBookingItem, OpeningHourSlot, SalonProfile, ServiceItem, TimeOffBlock } from '../core/admin-setup.types';
 import { AuthService } from '../core/auth.service';
 import { frontendEnv } from '../core/frontend-env';
@@ -26,7 +27,7 @@ type ServiceFormState = {
   name: string;
   description: string;
   durationMinutes: number;
-  priceAmount: number;
+  priceAmountChf: string;
   currency: string;
   sortOrder: number;
 };
@@ -69,7 +70,7 @@ function createEmptyServiceForm(): ServiceFormState {
     name: '',
     description: '',
     durationMinutes: 60,
-    priceAmount: 0,
+    priceAmountChf: '',
     currency: 'CHF',
     sortOrder: 0,
   };
@@ -114,10 +115,51 @@ function formatMoney(amount: number, currency: string): string {
   }).format(amount / 100);
 }
 
+function centsToChfInputValue(amount: number): string {
+  return (amount / 100).toFixed(2);
+}
+
+function chfInputValueToCents(value: string): number {
+  const normalizedValue = value.trim().replace(',', '.');
+  const amount = Number(normalizedValue);
+
+  if (!Number.isFinite(amount) || amount < 0) {
+    throw new Error('Bitte gib einen gueltigen Preis in CHF ein.');
+  }
+
+  return Math.round(amount * 100);
+}
+
 @Component({
   selector: 'app-admin-shell-page',
   standalone: true,
   imports: [FormsModule, NgFor, NgIf, RouterLink],
+  styles: [`
+    .ff-settings-shell { max-width: 1280px; margin: 0 auto; padding: 32px 24px; }
+    .ff-settings-layout { display: flex; gap: 32px; align-items: flex-start; }
+    .ff-settings-sidebar { width: 200px; flex-shrink: 0; }
+    .ff-settings-nav { background: var(--ff-surface); border: 1px solid var(--ff-line); border-radius: var(--ff-r-lg); overflow: hidden; }
+    .ff-settings-nav-btn { width: 100%; text-align: left; padding: 12px 16px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; border-top: 0; border-right: 0; border-bottom: 0; border-left: 3px solid transparent; transition: all 0.12s; display: flex; align-items: center; gap: 10px; background: transparent; }
+    .ff-settings-main { flex: 1; min-width: 0; }
+    .ff-settings-profile-grid { display: grid; grid-template-columns: 1fr 280px; gap: 24px; align-items: flex-start; }
+    .ff-settings-form-grid { padding: 24px; display: grid; gap: 16px; grid-template-columns: 1fr 1fr; }
+    .ff-settings-form-span { grid-column: span 2; }
+    .ff-services-form { padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .ff-service-row { display: flex; align-items: center; gap: 16px; padding: 14px 24px; border-bottom: 1px solid var(--ff-line); }
+    .ff-opening-day-head { display: flex; align-items: center; gap: 16px; }
+    .ff-opening-slot-row { display: flex; align-items: center; gap: 10px; }
+    .ff-timeoff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: flex-start; }
+    @media (max-width: 900px) {
+      .ff-settings-shell { padding: 24px 16px; }
+      .ff-settings-layout { flex-direction: column; gap: 16px; }
+      .ff-settings-sidebar, .ff-settings-main { width: 100%; }
+      .ff-settings-nav { display: flex; gap: 6px; overflow-x: auto; padding: 6px; }
+      .ff-settings-nav-btn { width: auto; min-width: max-content; border-left-width: 0 !important; border-radius: var(--ff-r-md); white-space: nowrap; }
+      .ff-settings-profile-grid, .ff-timeoff-grid, .ff-services-form, .ff-settings-form-grid { grid-template-columns: 1fr; }
+      .ff-settings-form-span { grid-column: span 1; }
+      .ff-service-row, .ff-opening-day-head, .ff-opening-slot-row { flex-direction: column; align-items: stretch; }
+    }
+  `],
   template: `
     <!-- FadeFlow admin shell -->
     <div style="min-height:100vh;background:var(--ff-bg);">
@@ -134,6 +176,47 @@ function formatMoney(amount: number, currency: string): string {
           </nav>
         </div>
         <div *ngIf="authService.adminProfile() as profile" style="display:flex;align-items:center;gap:8px;">
+          <div class="ff-admin-notification-wrap">
+            <button type="button" (click)="toggleNotifications()" title="Benachrichtigungen" class="ff-admin-icon-btn">
+              <i class="pi pi-bell" style="font-size:13px;"></i>
+              <span *ngIf="notificationsService.unreadCount() > 0" class="ff-admin-notification-badge">{{ notificationBadgeLabel() }}</span>
+            </button>
+
+            <div *ngIf="notificationsService.dropdownOpen()" class="ff-admin-notification-panel">
+              <div style="padding:14px 16px;border-bottom:1px solid var(--ff-line);display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                <div>
+                  <p class="ff-mono" style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--ff-ink-faint);margin:0 0 4px;">Benachrichtigungen</p>
+                  <p style="font-size:13px;color:var(--ff-ink-muted);margin:0;">Neue Buchungsanfragen</p>
+                </div>
+                <button type="button" (click)="closeNotifications()" class="ff-admin-icon-btn" style="width:32px;height:32px;">
+                  <i class="pi pi-times" style="font-size:12px;"></i>
+                </button>
+              </div>
+
+              <div *ngIf="notificationsService.notifications().length === 0" style="padding:18px 16px;font-size:13px;color:var(--ff-ink-muted);">
+                Noch keine neuen Buchungsanfragen.
+              </div>
+
+              <a
+                *ngFor="let notification of notificationsService.notifications()"
+                routerLink="/admin"
+                [queryParams]="{ date: notification.startsAt.slice(0, 10) }"
+                (click)="closeNotifications()"
+                class="ff-admin-notification-item"
+                [class.unread]="!notification.read"
+              >
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+                  <div style="min-width:0;">
+                    <p style="font-size:13px;font-weight:600;color:var(--ff-ink);margin:0 0 4px;">{{ notification.title }}</p>
+                    <p style="font-size:12px;line-height:1.45;color:var(--ff-ink-muted);margin:0;">{{ notification.message }}</p>
+                    <p class="ff-mono" style="font-size:10px;color:var(--ff-ink-faint);margin:8px 0 0;">{{ formatNotificationDateTime(notification.createdAt) }}</p>
+                  </div>
+                  <span *ngIf="!notification.read" style="width:8px;height:8px;border-radius:999px;background:var(--ff-accent);flex-shrink:0;margin-top:5px;"></span>
+                </div>
+              </a>
+            </div>
+          </div>
+
           <span style="font-size:13px;color:var(--ff-ink-muted);">{{ profile.admin.firstName }} {{ profile.admin.lastName }}</span>
           <button type="button" (click)="reload()" title="Aktualisieren" class="ff-admin-icon-btn">
             <i class="pi pi-refresh" style="font-size:13px;"></i>
@@ -160,18 +243,18 @@ function formatMoney(amount: number, currency: string): string {
     </div>
 
     <!-- Layout: heading + sidebar/content row -->
-    <div *ngIf="!loading()" style="max-width:1280px;margin:0 auto;padding:32px 24px;">
+    <div *ngIf="!loading()" class="ff-settings-shell">
       <div style="margin-bottom:24px;">
         <p class="ff-mono" style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.2em;color:var(--ff-ink-muted);margin:0 0 4px 0;">{{ activeSectionEyebrow() }}</p>
         <h2 class="ff-display" style="font-size:24px;color:var(--ff-ink);margin:0;">{{ activeSectionTitle() }}</h2>
       </div>
 
-      <div style="display:flex;gap:32px;align-items:flex-start;">
+      <div class="ff-settings-layout">
         <!-- Sidebar -->
-        <aside style="width:200px;flex-shrink:0;">
-          <nav style="background:var(--ff-surface);border:1px solid var(--ff-line);border-radius:var(--ff-r-lg);overflow:hidden;">
+        <aside class="ff-settings-sidebar">
+          <nav class="ff-settings-nav">
             <button type="button" *ngFor="let item of sidebarSections" (click)="activeSection.set(item.id)"
-              style="width:100%;text-align:left;padding:12px 16px;font-size:13px;font-weight:500;cursor:pointer;border:none;border-top:0;border-right:0;border-bottom:0;border-left:3px solid transparent;transition:all 0.12s;display:flex;align-items:center;gap:10px;background:transparent;"
+              class="ff-settings-nav-btn"
               [style.background]="activeSection() === item.id ? 'var(--ff-accent-soft)' : 'transparent'"
               [style.color]="activeSection() === item.id ? 'var(--ff-accent-text)' : 'var(--ff-ink)'"
               [style.border-left-color]="activeSection() === item.id ? 'var(--ff-accent)' : 'transparent'">
@@ -184,15 +267,20 @@ function formatMoney(amount: number, currency: string): string {
           <div *ngIf="salon()" style="margin-top:16px;background:var(--ff-surface);border:1px solid var(--ff-line);border-radius:var(--ff-r-lg);padding:14px;">
             <p style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.12em;color:var(--ff-ink-muted);margin:0 0 6px 0;">Buchungs-Link</p>
             <p class="ff-mono" style="font-size:10px;color:var(--ff-ink-muted);word-break:break-all;line-height:1.4;margin:0;">{{ bookingUrl() }}</p>
+            <button type="button" class="ff-btn-dark" (click)="copyBookingUrl()"
+              style="margin-top:10px;padding:7px 12px;font-size:12px;font-weight:500;display:inline-flex;align-items:center;gap:6px;">
+              <i class="pi pi-copy" style="font-size:11px;"></i>
+              Link kopieren
+            </button>
           </div>
         </aside>
 
         <!-- Main content -->
-        <main style="flex:1;min-width:0;">
+        <main class="ff-settings-main">
 
         <!-- SALON-PROFIL -->
         <section *ngIf="activeSection() === 'profil'">
-          <div style="display:grid;grid-template-columns:1fr 280px;gap:24px;align-items:flex-start;">
+          <div class="ff-settings-profile-grid">
             <!-- Profile form -->
             <div style="background:var(--ff-surface);border:1px solid var(--ff-line);border-radius:var(--ff-r-lg);overflow:hidden;">
               <div style="padding:16px 24px;border-bottom:1px solid var(--ff-line);display:flex;align-items:center;justify-content:space-between;">
@@ -200,12 +288,12 @@ function formatMoney(amount: number, currency: string): string {
                   <h3 style="font-size:15px;font-weight:600;color:var(--ff-ink);margin:0;">Profil</h3>
                   <p style="font-size:12px;color:var(--ff-ink-muted);margin:2px 0 0 0;">Für Kunden sichtbare Angaben</p>
                 </div>
-                <button type="submit" form="salon-form"
-                  style="padding:8px 16px;background:var(--ff-ink);color:#fff;border:none;border-radius:var(--ff-r-md);font-size:13px;font-weight:500;cursor:pointer;">
+                <button type="submit" form="salon-form" class="ff-btn-dark"
+                  style="padding:8px 16px;font-size:13px;font-weight:500;">
                   <i class="pi pi-spin pi-spinner" *ngIf="savingProfile()" style="margin-right:6px;"></i>Speichern
                 </button>
               </div>
-              <form id="salon-form" (ngSubmit)="saveSalonProfile()" style="padding:24px;display:grid;gap:16px;grid-template-columns:1fr 1fr;">
+              <form id="salon-form" (ngSubmit)="saveSalonProfile()" class="ff-settings-form-grid">
                 <div>
                   <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Salon-Name</label>
                   <input [(ngModel)]="salonForm.name" name="name" required class="ff-input" style="width:100%;box-sizing:border-box;" />
@@ -222,11 +310,11 @@ function formatMoney(amount: number, currency: string): string {
                   <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Zeitzone</label>
                   <input [(ngModel)]="salonForm.timezone" name="timezone" required class="ff-input" style="width:100%;box-sizing:border-box;" />
                 </div>
-                <div style="grid-column:span 2;">
+                <div class="ff-settings-form-span">
                   <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Adresse Zeile 1</label>
                   <input [(ngModel)]="salonForm.addressLine1" name="addressLine1" class="ff-input" style="width:100%;box-sizing:border-box;" />
                 </div>
-                <div style="grid-column:span 2;">
+                <div class="ff-settings-form-span">
                   <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Adresse Zeile 2</label>
                   <input [(ngModel)]="salonForm.addressLine2" name="addressLine2" class="ff-input" style="width:100%;box-sizing:border-box;" />
                 </div>
@@ -242,7 +330,7 @@ function formatMoney(amount: number, currency: string): string {
                   <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Ländercode</label>
                   <input [(ngModel)]="salonForm.countryCode" name="countryCode" maxlength="2" class="ff-input" style="width:100%;box-sizing:border-box;text-transform:uppercase;" />
                 </div>
-                <div style="grid-column:span 2;">
+                <div class="ff-settings-form-span">
                   <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Beschreibung</label>
                   <textarea [(ngModel)]="salonForm.description" name="description" rows="3" class="ff-input" style="width:100%;box-sizing:border-box;resize:vertical;"></textarea>
                 </div>
@@ -284,12 +372,12 @@ function formatMoney(amount: number, currency: string): string {
               <button *ngIf="editingServiceId()" type="button" (click)="resetServiceForm()"
                 style="font-size:12px;color:var(--ff-ink-muted);background:none;border:none;cursor:pointer;padding:4px 8px;">Abbrechen</button>
             </div>
-            <form (ngSubmit)="saveService()" style="padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-              <div style="grid-column:span 2;">
+            <form (ngSubmit)="saveService()" class="ff-services-form">
+              <div class="ff-settings-form-span">
                 <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Name</label>
                 <input [(ngModel)]="serviceForm.name" name="serviceName" required class="ff-input" style="width:100%;box-sizing:border-box;" />
               </div>
-              <div style="grid-column:span 2;">
+              <div class="ff-settings-form-span">
                 <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Beschreibung</label>
                 <textarea [(ngModel)]="serviceForm.description" name="serviceDescription" rows="2" class="ff-input" style="width:100%;box-sizing:border-box;resize:vertical;"></textarea>
               </div>
@@ -298,8 +386,9 @@ function formatMoney(amount: number, currency: string): string {
                 <input [(ngModel)]="serviceForm.durationMinutes" name="durationMinutes" type="number" min="5" step="5" required class="ff-input" style="width:100%;box-sizing:border-box;" />
               </div>
               <div>
-                <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Preis (Rappen)</label>
-                <input [(ngModel)]="serviceForm.priceAmount" name="priceAmount" type="number" min="0" step="100" required class="ff-input" style="width:100%;box-sizing:border-box;" />
+                <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Preis (CHF)</label>
+                <input [(ngModel)]="serviceForm.priceAmountChf" name="priceAmountChf" type="text" inputmode="decimal" placeholder="z.B. 79.00" required class="ff-input" style="width:100%;box-sizing:border-box;" />
+                <p style="font-size:11px;color:var(--ff-ink-faint);margin:6px 0 0 0;">Der Betrag wird intern automatisch in Rappen gespeichert.</p>
               </div>
               <div>
                 <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Währung</label>
@@ -309,7 +398,7 @@ function formatMoney(amount: number, currency: string): string {
                 <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Reihenfolge</label>
                 <input [(ngModel)]="serviceForm.sortOrder" name="sortOrder" type="number" min="0" step="1" class="ff-input" style="width:100%;box-sizing:border-box;" />
               </div>
-              <div style="grid-column:span 2;">
+              <div class="ff-settings-form-span">
                 <button type="submit"
                   style="padding:10px 20px;background:var(--ff-accent);color:#fff;border:none;border-radius:var(--ff-r-md);font-size:13px;font-weight:500;cursor:pointer;">
                   <i class="pi pi-spin pi-spinner" *ngIf="savingService()" style="margin-right:6px;"></i>
@@ -324,8 +413,7 @@ function formatMoney(amount: number, currency: string): string {
             <div style="padding:16px 24px;border-bottom:1px solid var(--ff-line);">
               <h3 style="font-size:14px;font-weight:600;color:var(--ff-ink);margin:0;">Leistungen ({{ services().length }})</h3>
             </div>
-            <article *ngFor="let service of services()"
-              style="display:flex;align-items:center;gap:16px;padding:14px 24px;border-bottom:1px solid var(--ff-line);">
+            <article *ngFor="let service of services()" class="ff-service-row">
               <div style="flex:1;min-width:0;">
                 <p style="font-size:14px;font-weight:600;color:var(--ff-ink);margin:0;">{{ service.name }}</p>
                 <p style="font-size:12px;color:var(--ff-ink-muted);margin:2px 0 0 0;">{{ service.description || 'Keine Beschreibung' }}</p>
@@ -355,14 +443,14 @@ function formatMoney(amount: number, currency: string): string {
           <div style="background:var(--ff-surface);border:1px solid var(--ff-line);border-radius:var(--ff-r-lg);overflow:hidden;">
             <div style="padding:16px 24px;border-bottom:1px solid var(--ff-line);display:flex;align-items:center;justify-content:space-between;">
               <h3 style="font-size:14px;font-weight:600;color:var(--ff-ink);margin:0;">Wochenplan</h3>
-              <button type="button" (click)="saveOpeningHours()"
-                style="padding:8px 16px;background:var(--ff-ink);color:#fff;border:none;border-radius:var(--ff-r-md);font-size:13px;font-weight:500;cursor:pointer;">
+              <button type="button" (click)="saveOpeningHours()" class="ff-btn-dark"
+                style="padding:8px 16px;font-size:13px;font-weight:500;">
                 <i class="pi pi-spin pi-spinner" *ngIf="savingOpeningHours()" style="margin-right:6px;"></i>Speichern
               </button>
             </div>
             <article *ngFor="let day of openingDays; let dayIndex = index"
               style="padding:14px 24px;border-bottom:1px solid var(--ff-line);">
-              <div style="display:flex;align-items:center;gap:16px;">
+              <div class="ff-opening-day-head">
                 <div style="width:120px;flex-shrink:0;">
                   <span style="font-size:13px;font-weight:600;color:var(--ff-ink);">{{ day.label }}</span>
                   <span *ngIf="day.slots.length === 0" style="display:block;font-size:11px;color:var(--ff-ink-faint);">Geschlossen</span>
@@ -379,8 +467,7 @@ function formatMoney(amount: number, currency: string): string {
                 </button>
               </div>
               <div *ngIf="day.slots.length > 0" style="margin-top:10px;display:flex;flex-direction:column;gap:8px;">
-                <div *ngFor="let slot of day.slots; let slotIndex = index"
-                  style="display:flex;align-items:center;gap:10px;">
+                <div *ngFor="let slot of day.slots; let slotIndex = index" class="ff-opening-slot-row">
                   <input [(ngModel)]="slot.startTime" [name]="'start-' + day.weekday + '-' + slotIndex" type="time"
                     class="ff-input" style="width:120px;" />
                   <span style="font-size:12px;color:var(--ff-ink-muted);">bis</span>
@@ -398,7 +485,7 @@ function formatMoney(amount: number, currency: string): string {
 
         <!-- ABWESENHEITEN -->
         <section *ngIf="activeSection() === 'abwesenheiten'">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:flex-start;">
+          <div class="ff-timeoff-grid">
             <!-- Form -->
             <div style="background:var(--ff-surface);border:1px solid var(--ff-line);border-radius:var(--ff-r-lg);overflow:hidden;">
               <div style="padding:16px 24px;border-bottom:1px solid var(--ff-line);">
@@ -451,8 +538,8 @@ function formatMoney(amount: number, currency: string): string {
           <div style="background:var(--ff-surface);border:1px solid var(--ff-line);border-radius:var(--ff-r-lg);overflow:hidden;max-width:480px;">
             <div style="padding:16px 24px;border-bottom:1px solid var(--ff-line);display:flex;align-items:center;justify-content:space-between;">
               <h3 style="font-size:14px;font-weight:600;color:var(--ff-ink);margin:0;">Puffer-Zeit</h3>
-              <button type="button" (click)="saveSalonProfile()"
-                style="padding:8px 16px;background:var(--ff-ink);color:#fff;border:none;border-radius:var(--ff-r-md);font-size:13px;font-weight:500;cursor:pointer;">
+              <button type="button" (click)="saveSalonProfile()" class="ff-btn-dark"
+                style="padding:8px 16px;font-size:13px;font-weight:500;">
                 <i class="pi pi-spin pi-spinner" *ngIf="savingProfile()" style="margin-right:6px;"></i>Speichern
               </button>
             </div>
@@ -472,6 +559,7 @@ function formatMoney(amount: number, currency: string): string {
 })
 export class AdminShellPage {
   readonly authService = inject(AuthService);
+  readonly notificationsService = inject(AdminNotificationsService);
   private readonly adminSetupApi = inject(AdminSetupApiService);
   private readonly router = inject(Router);
 
@@ -505,6 +593,7 @@ export class AdminShellPage {
   timeOffForm: TimeOffFormState = createEmptyTimeOffForm();
 
   constructor() {
+    this.notificationsService.ensurePolling();
     void this.reload();
   }
 
@@ -544,6 +633,28 @@ export class AdminShellPage {
 
   async logout(): Promise<void> {
     await this.authService.signOut();
+  }
+
+  async toggleNotifications(): Promise<void> {
+    await this.notificationsService.toggleDropdown();
+  }
+
+  closeNotifications(): void {
+    this.notificationsService.closeDropdown();
+  }
+
+  notificationBadgeLabel(): string {
+    const unreadCount = this.notificationsService.unreadCount();
+    return unreadCount > 9 ? '9+' : String(unreadCount);
+  }
+
+  formatNotificationDateTime(value: string): string {
+    return new Intl.DateTimeFormat('de-CH', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(new Date(value));
   }
 
   isActive(path: string): boolean {
@@ -662,7 +773,7 @@ export class AdminShellPage {
       name: service.name,
       description: service.description ?? '',
       durationMinutes: service.durationMinutes,
-      priceAmount: service.priceAmount,
+      priceAmountChf: centsToChfInputValue(service.priceAmount),
       currency: service.currency,
       sortOrder: service.sortOrder,
     };
@@ -677,7 +788,7 @@ export class AdminShellPage {
         name: this.serviceForm.name.trim(),
         description: this.optionalValue(this.serviceForm.description),
         durationMinutes: Number(this.serviceForm.durationMinutes),
-        priceAmount: Number(this.serviceForm.priceAmount),
+        priceAmount: chfInputValueToCents(this.serviceForm.priceAmountChf),
         currency: this.serviceForm.currency.trim().toUpperCase() || 'CHF',
         sortOrder: Number(this.serviceForm.sortOrder),
       };
@@ -834,7 +945,22 @@ export class AdminShellPage {
       return '';
     }
 
-    return `${window.location.origin}/s/${slug}/book`;
+    return `${window.location.origin}/${slug}`;
+  }
+
+  async copyBookingUrl(): Promise<void> {
+    const url = this.bookingUrl();
+
+    if (!url) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(url);
+      this.statusMessage.set('Buchungs-Link kopiert.');
+    } catch {
+      this.loadError.set('Der Buchungs-Link konnte nicht kopiert werden.');
+    }
   }
 
   formatMoneyValue(amount: number, currency: string): string {
