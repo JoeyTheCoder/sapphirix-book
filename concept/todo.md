@@ -656,11 +656,335 @@ Use this file as a shared working list: we can reorder stories, split them, or r
 - [ ] As a developer, I want basic logging and error handling so issues are easier to diagnose.
 - [ ] As a developer, I want smoke tests for critical flows so changes do not break booking or login.
 
+### In Plain English
+
+- We harden the app so random spam, bots, and avoidable mistakes do less damage.
+- We make failures easier to understand when something goes wrong in production.
+- We add a small but real safety net so future changes do not quietly break login or booking.
+- This phase is not about adding shiny features. It is about making the MVP safer to trust.
+
+### What Will Actually Happen In This Phase
+
+- Public booking endpoints get request limits so one person or script cannot hammer them endlessly.
+- Public booking actions get a bot-check layer so automated spam becomes much harder.
+- The backend starts writing clearer logs for normal requests and for failures.
+- Error responses stay clean for the user, while the server keeps more useful details for debugging.
+- We add smoke tests for the flows that must never casually break: admin login, public booking load, availability lookup, and booking creation.
+
+### The Main Pieces We Would Build
+
+- Rate limiting:
+	protect public routes like availability lookup and booking creation.
+- Bot protection:
+	add a lightweight challenge such as Cloudflare Turnstile or reCAPTCHA to the booking flow.
+- Structured logging:
+	log request path, status, timing, and important error context in a consistent format.
+- Safer error handling:
+	show generic errors to users while keeping detailed logs on the backend.
+- Smoke test coverage:
+	add a few end-to-end or API-level checks for the critical happy paths.
+- Environment switches:
+	allow protection settings to be strict in production and lighter during local development.
+
+### Simple Implementation Notes
+
+- Rate limiting should focus on public routes first, not admin routes.
+- Booking creation should usually be stricter than simple read endpoints like availability lookup.
+- Bot protection should be enforced on the final booking action, not on every page load.
+- Local development should have an easy bypass so you can keep building without fighting the protection layer.
+- Logs should include enough detail to debug issues without dumping secrets or Firebase tokens.
+- Smoke tests should cover only the flows most likely to hurt the MVP if they break.
+- If possible, reuse one request ID across logs so a single failing request is easier to trace.
+
+### The First Technical Pieces We Intend To Have
+
+- Public route protection:
+	rate limits for `GET /api/v1/public/...availability...` and `POST /api/v1/public/...bookings...`
+- Bot verification check:
+	server-side verification of the chosen challenge token before creating a booking.
+- Logging middleware:
+	one place that logs method, route, status code, duration, and request ID.
+- Error logging:
+	unexpected backend errors are logged with context before the API returns the safe error message.
+- Smoke test targets:
+	admin login, public salon load, availability response, and successful booking creation.
+
+### The User Experience We Are Aiming For
+
+- Real customers can still book quickly without noticing heavy protection.
+- Obvious spam and repeated abuse are slowed down or blocked.
+- If booking fails, the customer sees a clear message instead of a broken page.
+- If something breaks on the backend, you can actually see what happened from the logs.
+- Before a release, you can run a small test set and know the core flows still work.
+
+### Decisions To Make
+
+- [ ] Rate limiting scope: Protect only `POST /bookings`, or also protect availability and salon public-data endpoints?
+- [ ] Rate limiting strength: Start with a simple fixed limit per IP, or use separate stricter limits for booking creation vs. read endpoints?
+- [ ] Bot protection tool: Cloudflare Turnstile, Google reCAPTCHA, or another option?
+- [ ] Bot protection timing: Check only on final booking submit, or also on availability requests?
+- [ ] Dev experience: Full local bypass, test keys only, or a toggle in `.env`?
+- [ ] Logging style: Simple console JSON logs only, or also write to a file/provider later?
+- [ ] Request tracing: Add a request ID now, or keep logging simpler for MVP?
+- [ ] Error detail level: Should the frontend always show a generic safe message, or should validation and expected booking conflicts stay specific?
+- [ ] Smoke test level: API smoke tests only, or one browser-based booking flow too?
+- [ ] Test trigger: Run smoke tests manually before release, or wire them into every build/CI step now?
+- [ ] Alerting: Ignore alerts for MVP, or at least prepare one error-reporting hook now?
+
+### Recommended Default If You Want To Move Fast
+
+- Rate limiting scope:
+	protect availability and booking creation, but keep the booking-create limit stricter.
+- Rate limiting strength:
+	simple per-IP limits are enough for MVP.
+- Bot protection tool:
+	Cloudflare Turnstile is usually a good lightweight default.
+- Bot protection timing:
+	check only on final booking submit.
+- Dev experience:
+	use an `.env` toggle so local work stays fast.
+- Logging style:
+	structured console logs only.
+- Request tracing:
+	yes, add a request ID now.
+- Error detail level:
+	keep validation and booking-conflict messages specific, keep unexpected server failures generic.
+- Smoke test level:
+	API smoke tests first, with one browser booking flow later if needed.
+- Test trigger:
+	manual local run first, CI later in Phase 8.
+- Alerting:
+	skip full alerting now, but keep the logging shape compatible with adding it later.
+
+### Decisions
+
+- All default decisions are accepted except:
+- Test trigger: implement tests in CI steps now
+
+
+### How To Validate
+
+- Start backend and frontend and confirm the normal booking flow still works before testing protection.
+- Hit the protected availability endpoint repeatedly and confirm rate limiting starts responding once the threshold is crossed.
+- Try repeated booking-submit requests and confirm stricter booking limits apply there too.
+- Try creating a booking without a valid bot token and confirm the backend rejects it cleanly.
+- Try the same request with a valid token and confirm booking still works.
+- Confirm local development still works with the agreed bypass or test-key setup.
+- Trigger one expected error, like a double-booking conflict, and confirm the customer sees a useful message.
+- Trigger one unexpected backend error and confirm the frontend gets a safe generic message while the backend logs the useful details.
+- Run the smoke tests and confirm they cover login, public booking load, availability, and booking creation.
+- Break one smoke-tested route on purpose or point a test to a wrong URL and confirm the test suite actually fails.
+
+### Done Means
+
+- Public booking routes have real abuse protection.
+- The booking flow is still usable for real customers.
+- The backend produces useful logs for both normal requests and failures.
+- Sensitive internals are not leaked to end users.
+- The project has a small reliable smoke test set for the most important flows.
+- The MVP is much safer to ship and easier to support.
+
 ## Phase 8 - Release Readiness
 
 - [ ] As a developer, I want production env handling defined so deployment is repeatable.
 - [ ] As a developer, I want a clean Docker-based deployment path so local and hosted setups stay close.
 - [ ] As a product owner, I want the MVP flow reviewed end to end so we know what is ready for first users.
+
+### In Plain English
+
+- We turn the project from a good local MVP into something you can actually prepare for real customer use.
+- We make deployment, environment setup, and salon onboarding predictable instead of manual guesswork.
+- We check the important user flows from beginning to end so you know what is genuinely ready.
+- This phase is about operational clarity, not new product depth.
+
+### What Will Actually Happen In This Phase
+
+- The production environment variables are documented clearly and validated before startup.
+- The deployment path is written down and aligned with the Docker-based local setup as much as practical.
+- Database migration and provisioning steps are defined for staging and production.
+- The team gets a simple release checklist for bootstrapping a new salon and verifying the app after deploy.
+- The MVP is reviewed end to end so open gaps are visible before first-user rollout.
+
+### The Main Pieces We Would Build
+
+- Production env checklist:
+	define which values are required in local, staging, and production.
+- Deployment path:
+	document how frontend, backend, database, and uploads are started in a hosted environment.
+- Migration workflow:
+	make schema rollout explicit so deploys do not depend on memory.
+- Provisioning workflow:
+	define the exact steps or script inputs for onboarding a new salon.
+- Release checklist:
+	one repeatable checklist for pre-release and post-release verification.
+- Operational review:
+	review public booking, admin login, admin operations, and salon setup from a release perspective.
+
+### Simple Implementation Notes
+
+- Keep production env handling centralized at the repo root, just like local development.
+- Production should fail fast if critical env values are missing or malformed.
+- Docker should stay part of the deployment story when it genuinely reduces drift, but do not force full container orchestration if simple hosting is enough for the MVP.
+- File uploads need a release decision: keep local disk only for early hosting, or move to object storage before first real customer.
+- Backups and restore steps should be written down even if they stay manual at first.
+- The provisioning script should be treated as part of the release workflow, not just a dev helper.
+- The end-to-end review should look at user trust too: branding, error messages, access control, and obvious rough edges.
+
+### The First Release Pieces We Intend To Have
+
+- Production env documentation:
+	what must exist for backend, frontend sync, Firebase, bot protection, and database access.
+- Deployment instructions:
+	how to build, migrate, start, and verify the app in a hosted environment.
+- Tenant onboarding path:
+	how to create a salon and its first admin safely.
+- Release verification checklist:
+	manual checks for public booking, admin login, admin bookings, setup page, and health endpoints.
+- Rollback awareness:
+	at minimum, a documented restore path for database and app version rollback.
+
+### The User Experience We Are Aiming For
+
+- A new salon can be onboarded without improvising technical steps.
+- A release can be repeated on another machine or host without hidden assumptions.
+- The first real customer does not hit obvious setup mistakes like broken env values, missing migrations, or missing assets.
+- After deployment, you can quickly confirm whether the app is healthy and usable.
+
+### Decisions To Make
+
+- [ ] Hosting shape: One VPS/server with frontend and backend together, or split hosting for frontend and backend?
+- [ ] Database hosting: Keep PostgreSQL self-hosted first, or move to a managed database before first release?
+- [ ] Upload storage: Keep local-disk uploads in the first release, or move to cloud/object storage now?
+- [ ] Deployment style: Manual deploy script/checklist first, or automated deployment pipeline now?
+- [ ] Environments: Local + production only, or add a real staging environment before first customer?
+- [ ] Domain shape: Use one shared app domain first, or prepare per-salon custom domains already?
+- [ ] Backups: Manual scheduled backups first, or automated backup handling before release?
+- [ ] Monitoring: Health endpoints + logs only, or add a hosted error-monitoring tool now?
+- [ ] Notification readiness: Is page-only confirmation still enough for first users, or must email notifications land before release?
+- [ ] Branding threshold: Is the current UI good enough for a first salon, or should branding polish be part of release readiness?
+- [ ] Onboarding flow: Will each new salon be provisioned only by you manually, or do you want a more polished internal onboarding checklist now?
+- [ ] Go-live scope: Release to one pilot salon first, or prepare for multiple salons immediately?
+
+### Recommended Default If You Want To Move Fast
+
+- Hosting shape:
+	one server/VPS is enough for the first release.
+- Database hosting:
+	self-hosted PostgreSQL is acceptable if backups are handled, managed DB later.
+- Upload storage:
+	local disk is acceptable for the first pilot if hosting is simple and backups are covered.
+- Deployment style:
+	manual but documented deployment first.
+- Environments:
+	local + production is enough if you stay disciplined, staging later if releases get riskier.
+- Domain shape:
+	shared app domain first.
+- Backups:
+	at least automated database dumps before first customer.
+- Monitoring:
+	health endpoints + structured logs first.
+- Notification readiness:
+	page-only confirmation can work for a technical pilot, but customer-facing email is strongly worth reconsidering before broader rollout.
+- Branding threshold:
+	ship only once the booking and admin experience look intentional and trustworthy.
+- Onboarding flow:
+	manual operator-led onboarding is fine for MVP.
+- Go-live scope:
+	one pilot salon first.
+
+### Decisions
+
+Hosting shape:
+One IONOS Ubuntu VPS for the first pilot.
+Frontend is built in GitHub Actions and deployed as static files served by Nginx.
+Backend runs as one long-running Express.js service on the VPS.
+Nginx handles HTTPS, static frontend delivery, and reverse proxying /api to Express.
+
+Database hosting:
+Use PostgreSQL on the same VPS for the first pilot if the VPS has enough RAM and disk.
+Prefer host-installed PostgreSQL or one lightweight Docker PostgreSQL container, but avoid running unnecessary extra containers.
+If the VPS is very small or already under load, move PostgreSQL to a managed provider earlier.
+
+Upload storage:
+Use local disk first for salon logos/assets, but keep uploads small and include them in backups.
+Store uploads outside the app release folder, for example /var/www/sapphirix/uploads.
+Move to object storage later if multiple salons or larger media uploads become relevant.
+
+Deployment style:
+GitHub Actions builds and tests the app.
+GitHub Actions builds the Angular frontend and uploads only the static dist files to the VPS.
+Backend deployment can be either:
+1. SSH pull latest code, install production dependencies, run migrations, restart with systemd/PM2
+or
+2. build backend artifact in GitHub Actions and upload it to the VPS.
+For your VPS, I would start with systemd or PM2 instead of Docker for the Express backend if you want the lowest overhead.
+
+Environments:
+Local + production first.
+Do not add staging yet unless you start making risky changes while a real salon depends on the app.
+Use a separate test salon tenant in production for final checks.
+
+Domain shape:
+Use one shared app domain first, for example:
+app.yourbrand.ch/s/salon-slug
+or
+booking.yourbrand.ch/s/salon-slug
+Custom domains per salon should wait.
+
+Backups:
+Automated PostgreSQL dumps before the first real customer.
+Keep at least 7 daily backups.
+Also back up uploads and the production env file securely.
+Do one restore rehearsal before going live.
+
+Monitoring:
+Use /health and /ready endpoints, Nginx logs, backend logs, and a simple external uptime monitor.
+Add hosted error tracking later if errors become hard to diagnose.
+
+Notification readiness:
+For your barber friend / technical pilot, page-only confirmation can be acceptable.
+Before broader real customer use, add at least customer confirmation email and optional admin notification email.
+
+Branding threshold:
+The booking page must look trustworthy and intentional before the pilot.
+It does not need to be perfect, but it should not feel like a dev prototype.
+
+Onboarding flow:
+Manual onboarding by you first.
+Use a provisioning script or checklist to create:
+- salon
+- first admin
+- services
+- opening hours
+- branding
+- booking URL
+
+Go-live scope:
+One pilot salon first.
+Do not optimize for many salons until one salon has used it successfully in real operation.
+
+### How To Validate
+
+- Prepare a fresh host or clean environment and confirm the documented env setup is enough to start the app.
+- Run the production build and confirm frontend and backend both start with the production-oriented config.
+- Apply migrations on the target environment and confirm the app boots without schema mismatch errors.
+- Run the provisioning flow for a new salon and first admin and confirm login works afterward.
+- Open the public booking page on the deployed environment and confirm salon data, services, and booking creation work end to end.
+- Open the admin area and confirm login, booking management, and settings all work after deploy.
+- Verify file uploads or logo rendering on the hosted environment if uploads stay in scope.
+- Confirm `/health` and `/ready` behave correctly in the hosted environment.
+- Confirm logs are readable enough to diagnose a bad request and an unexpected server failure.
+- Perform one backup and one restore rehearsal, even if the restore is only validated in a non-production copy.
+- Walk through the release checklist and note any steps that still rely on tribal knowledge or undocumented assumptions.
+
+### Done Means
+
+- Production env handling is clearly defined.
+- Deployment can be repeated without guessing hidden steps.
+- Migration and provisioning steps are documented and usable.
+- The MVP has been reviewed end to end from a release perspective.
+- You know what is ready for a pilot salon and what still needs polish before broader rollout.
+- The project is no longer just locally functional; it is operationally understandable.
 
 ## Open Notes
 

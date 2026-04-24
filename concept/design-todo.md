@@ -1,0 +1,4 @@
+- Preis Rappen doesn't make much sense, 
+- Error messages, for example when booking appointment and i don't enter email or phone number i need visible feedback for the customer to know what's missing
+- new feature idea: Notifications if a customer has booked a slot there should be a notification bell in the navbar with a message so the owner sees it directly
+- button animation of dark blue buttons hides text, i don't want that

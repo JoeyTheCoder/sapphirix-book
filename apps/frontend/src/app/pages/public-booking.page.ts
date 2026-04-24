@@ -1,10 +1,11 @@
 import { NgFor, NgIf } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, ViewChild, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 
 import { PublicBookingApiService } from '../core/public-booking-api.service';
 import { frontendEnv } from '../core/frontend-env';
+import { TurnstileWidgetComponent } from '../shared/turnstile-widget.component';
 import type {
   AvailabilityCalendarPreviewDay,
   AvailabilityCalendarPreviewResult,
@@ -106,7 +107,7 @@ function readErrorMessage(error: unknown, fallbackMessage: string): string {
 @Component({
   selector: 'app-public-booking-page',
   standalone: true,
-  imports: [FormsModule, NgFor, NgIf],
+  imports: [FormsModule, NgFor, NgIf, TurnstileWidgetComponent],
   template: `
     <!-- FadeFlow public booking page -->
     <div style="min-height:100vh;background:var(--ff-bg);">
@@ -335,9 +336,16 @@ function readErrorMessage(error: unknown, fallbackMessage: string): string {
                   <textarea [(ngModel)]="bookingForm.notes" name="notes" rows="3" class="ff-input" style="width:100%;box-sizing:border-box;resize:vertical;"></textarea>
                 </div>
               </div>
+              <div *ngIf="botProtectionEnabled()" style="margin-top:16px;">
+                <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:8px;">Sicherheitsprüfung</label>
+                <app-turnstile-widget
+                  [siteKey]="turnstileSiteKey()"
+                  (tokenChange)="onBotProtectionTokenChange($event)"
+                />
+              </div>
               <button type="submit"
                 style="margin-top:20px;width:100%;padding:14px;background:var(--ff-ink);color:#fff;border:none;border-radius:var(--ff-r-md);font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;"
-                [disabled]="submitting()">
+                [disabled]="submitting() || !canSubmit()">
                 <i [class]="submitting() ? 'pi pi-spin pi-spinner' : 'pi pi-send'" style="font-size:14px;"></i>
                 <span>{{ submitting() ? 'Wird gesendet…' : 'Buchungsanfrage senden' }}</span>
               </button>
@@ -350,6 +358,8 @@ function readErrorMessage(error: unknown, fallbackMessage: string): string {
   `,
 })
 export class PublicBookingPage {
+  @ViewChild(TurnstileWidgetComponent) private turnstileWidget?: TurnstileWidgetComponent;
+
   private readonly route = inject(ActivatedRoute);
   private readonly bookingApi = inject(PublicBookingApiService);
 
@@ -369,6 +379,7 @@ export class PublicBookingPage {
   readonly selectedSlot = signal<AvailabilitySlot | null>(null);
   readonly completedBooking = signal<BookingConfirmation | null>(null);
   readonly visibleMonth = signal('');
+  readonly botProtectionToken = signal<string | null>(null);
   readonly weekdayLabels = weekdayLabels;
 
   readonly bookingForm = createEmptyBookingForm();
@@ -553,8 +564,21 @@ export class PublicBookingPage {
         this.bookingForm.firstName.trim() &&
         this.bookingForm.lastName.trim() &&
         this.bookingForm.email.trim() &&
-        this.bookingForm.phone.trim(),
+        this.bookingForm.phone.trim() &&
+        (!this.botProtectionEnabled() || this.botProtectionToken()),
     );
+  }
+
+  botProtectionEnabled(): boolean {
+    return frontendEnv.botProtection.enabled && this.turnstileSiteKey().length > 0;
+  }
+
+  turnstileSiteKey(): string {
+    return frontendEnv.botProtection.turnstileSiteKey;
+  }
+
+  onBotProtectionTokenChange(token: string | null): void {
+    this.botProtectionToken.set(token);
   }
 
   async submit(): Promise<void> {
@@ -580,16 +604,25 @@ export class PublicBookingPage {
           email: this.bookingForm.email.trim(),
           phone: this.bookingForm.phone.trim(),
         },
+        botProtectionToken: this.botProtectionToken() ?? undefined,
         customerNotes: this.bookingForm.notes.trim() || undefined,
       });
 
       this.completedBooking.set(booking);
       this.selectedSlot.set(null);
       this.bookingForm.notes = '';
+      this.turnstileWidget?.reset();
+      this.botProtectionToken.set(null);
       await this.loadCalendarPreview(false);
       await this.loadAvailability();
     } catch (error: unknown) {
-      this.submitError.set(readErrorMessage(error, 'Failed to create the booking.'));
+      const message = readErrorMessage(error, 'Failed to create the booking.');
+      this.submitError.set(message);
+
+      if (message.toLowerCase().includes('bot verification')) {
+        this.turnstileWidget?.reset();
+        this.botProtectionToken.set(null);
+      }
     } finally {
       this.submitting.set(false);
     }

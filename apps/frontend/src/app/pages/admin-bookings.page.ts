@@ -130,10 +130,6 @@ function createEmptyManualBookingForm(selectedDate: string): ManualBookingFormSt
   standalone: true,
   imports: [FormsModule, NgFor, NgIf, RouterLink],
   styles: [`
-    .ff-topbar { background: var(--ff-surface); border-bottom: 1px solid var(--ff-line); }
-    .ff-nav-link { font-size: 14px; font-weight: 500; color: var(--ff-ink-muted); padding: 16px 4px; border-bottom: 2px solid transparent; text-decoration: none; transition: color 120ms; }
-    .ff-nav-link:hover { color: var(--ff-ink); }
-    .ff-nav-link.active { color: var(--ff-ink); border-bottom-color: var(--ff-ink); }
     .ff-week-day { border: 1px solid var(--ff-line); border-radius: var(--ff-r-lg); padding: 10px 8px; cursor: pointer; background: var(--ff-surface); transition: border-color 120ms, background 120ms; text-align: left; }
     .ff-week-day:hover { border-color: var(--ff-accent); }
     .ff-week-day.selected { border-color: var(--ff-accent); border-top: 3px solid var(--ff-accent); background: var(--ff-surface-alt); }
@@ -168,25 +164,25 @@ function createEmptyManualBookingForm(selectedDate: string): ManualBookingFormSt
   `],
   template: `
     <!-- Top navigation bar -->
-    <header class="ff-topbar" style="position:sticky; top:0; z-index:30;">
-      <div style="max-width:1200px; margin:0 auto; padding:0 24px; display:flex; align-items:center; justify-content:space-between; gap:16px; height:56px;">
+    <header class="ff-admin-topbar">
+      <div class="ff-admin-topbar-inner">
         <!-- Logo + nav -->
-        <div style="display:flex; align-items:center; gap:28px;">
+        <div class="ff-admin-brand">
           <img src="assets/images/Logo-textside.png" alt="FadeFlow" style="height:28px; width:auto;" />
-          <span style="font-size:15px; font-weight:600; color:var(--ff-ink);">{{ salonName() }}</span>
-          <nav style="display:flex; align-items:center; gap:20px; height:56px;">
-            <a routerLink="/admin" class="ff-nav-link" [class.active]="isActive('/admin')">Termine</a>
-            <a routerLink="/admin/settings" class="ff-nav-link" [class.active]="isActive('/admin/settings')">Einstellungen</a>
+          <span class="ff-admin-brand-name">{{ salonName() }}</span>
+          <nav class="ff-admin-nav">
+            <a routerLink="/admin" class="ff-admin-nav-link" [class.active]="isActive('/admin')">Termine</a>
+            <a routerLink="/admin/settings" class="ff-admin-nav-link" [class.active]="isActive('/admin/settings')">Einstellungen</a>
           </nav>
         </div>
 
         <!-- Right actions -->
         <div style="display:flex; align-items:center; gap:8px;" *ngIf="authService.adminProfile() as profile">
           <span style="font-size:13px; color:var(--ff-ink-muted);">{{ profile.admin.firstName }} {{ profile.admin.lastName }}</span>
-          <button type="button" (click)="reload()" title="Aktualisieren" class="ff-btn" style="width:36px; padding:0; display:flex; align-items:center; justify-content:center;">
+          <button type="button" (click)="reload()" title="Aktualisieren" class="ff-admin-icon-btn">
             <i class="pi pi-refresh" style="font-size:13px;"></i>
           </button>
-          <button type="button" (click)="logout()" title="Abmelden" class="ff-btn" style="width:36px; padding:0; display:flex; align-items:center; justify-content:center;">
+          <button type="button" (click)="logout()" title="Abmelden" class="ff-admin-icon-btn">
             <i class="pi pi-sign-out" style="font-size:13px;"></i>
           </button>
         </div>
@@ -274,7 +270,7 @@ function createEmptyManualBookingForm(selectedDate: string): ManualBookingFormSt
                   >
                     <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
                       <span class="ff-mono" style="font-size:11px; color:var(--ff-ink-faint);">{{ formatTimeValue(booking.startsAt) }}–{{ formatTimeValue(booking.endsAt) }}</span>
-                      <span class="ff-status-chip" [class]="'chip-' + booking.status">{{ booking.status }}</span>
+                      <span class="ff-status-chip" [class]="'chip-' + booking.status">{{ getStatusLabel(booking.status) }}</span>
                     </div>
                     <p style="font-size:13px; font-weight:600; color:var(--ff-ink); margin:0 0 2px;">{{ booking.customer.firstName }} {{ booking.customer.lastName }}</p>
                     <p style="font-size:12px; color:var(--ff-ink-muted); margin:0;">{{ booking.service.name }}</p>
@@ -284,7 +280,7 @@ function createEmptyManualBookingForm(selectedDate: string): ManualBookingFormSt
                   <button
                     type="button"
                     (click)="openCreateDrawer(row.time)"
-                    style="width:100%; min-height:44px; background:transparent; border:none; cursor:pointer; text-align:left; padding:4px 0; color:var(--ff-ink-faint); font-size:12px; display:flex; align-items:center; gap:6px; transition:color 120ms;"
+                    style="width:100%; min-height:44px; background:transparent; border:none; cursor:pointer; text-align:left; padding:4px 0 4px 14px; color:var(--ff-ink-faint); font-size:12px; display:flex; align-items:center; gap:6px; transition:color 120ms;"
                     onmouseenter="this.style.color='var(--ff-accent)'"
                     onmouseleave="this.style.color='var(--ff-ink-faint)'"
                   >
@@ -385,7 +381,7 @@ function createEmptyManualBookingForm(selectedDate: string): ManualBookingFormSt
           <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:12px;">
             <div>
               <p class="ff-mono" style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; opacity:0.6; margin:0 0 4px;">Status</p>
-              <p class="ff-status-chip" [class]="'chip-' + booking.status" style="display:inline-block;">{{ booking.status }}</p>
+              <p class="ff-status-chip" [class]="'chip-' + booking.status" style="display:inline-block;">{{ getStatusLabel(booking.status) }}</p>
             </div>
           </div>
           <p style="font-size:15px; font-weight:600; margin:0 0 4px;">{{ booking.service.name }}</p>
@@ -485,7 +481,7 @@ export class AdminBookingsPage {
       this.manualBookingForm.startsAt = `${selectedDate}T09:00`;
       this.statusMessage.set(null);
     } catch (error: unknown) {
-      this.loadError.set(error instanceof Error ? error.message : 'Failed to load bookings.');
+      this.loadError.set(error instanceof Error ? error.message : 'Die Termine konnten nicht geladen werden.');
     } finally {
       this.loading.set(false);
     }
@@ -496,7 +492,7 @@ export class AdminBookingsPage {
   }
 
   salonName(): string {
-    return this.salon()?.name ?? this.authService.adminProfile()?.salon.name ?? 'Bookings';
+    return this.salon()?.name ?? this.authService.adminProfile()?.salon.name ?? 'Termine';
   }
 
   weekDates(): string[] {
@@ -574,7 +570,7 @@ export class AdminBookingsPage {
       this.detailDrawerOpen.set(true);
       this.createDrawerOpen.set(false);
     } catch (error: unknown) {
-      this.loadError.set(error instanceof Error ? error.message : 'Failed to load booking detail.');
+      this.loadError.set(error instanceof Error ? error.message : 'Die Termindetails konnten nicht geladen werden.');
     }
   }
 
@@ -602,11 +598,11 @@ export class AdminBookingsPage {
       };
 
       await this.adminSetupApi.createBooking(payload);
-      this.statusMessage.set('Manual booking created as confirmed.');
+      this.statusMessage.set('Termin erfolgreich erstellt.');
       this.closeDrawers();
       await this.reload();
     } catch (error: unknown) {
-      this.loadError.set(error instanceof Error ? error.message : 'Failed to create the booking.');
+      this.loadError.set(error instanceof Error ? error.message : 'Der Termin konnte nicht erstellt werden.');
     } finally {
       this.savingManualBooking.set(false);
     }
@@ -618,12 +614,12 @@ export class AdminBookingsPage {
     try {
       const booking = await this.adminSetupApi.updateBookingStatus(bookingId, status);
       this.selectedBooking.set(booking);
-      this.statusMessage.set(`Booking marked as ${status}.`);
+      this.statusMessage.set(`Terminstatus auf ${this.getStatusLabel(status)} gesetzt.`);
       await this.reload();
       this.selectedBooking.set(booking);
       this.detailDrawerOpen.set(true);
     } catch (error: unknown) {
-      this.loadError.set(error instanceof Error ? error.message : 'Failed to update the booking.');
+      this.loadError.set(error instanceof Error ? error.message : 'Der Termin konnte nicht aktualisiert werden.');
     }
   }
 
@@ -661,6 +657,19 @@ export class AdminBookingsPage {
 
   formatMoneyValue(amount: number, currency: string): string {
     return formatMoney(amount, currency);
+  }
+
+  getStatusLabel(status: AdminBookingStatus): string {
+    switch (status) {
+      case 'pending':
+        return 'ausstehend';
+      case 'confirmed':
+        return 'bestätigt';
+      case 'cancelled':
+        return 'storniert';
+      case 'completed':
+        return 'abgeschlossen';
+    }
   }
 
   private optionalValue(value: string): string | undefined {

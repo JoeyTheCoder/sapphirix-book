@@ -26,6 +26,7 @@ export const createBookingSchema = z.object({
   salonSlug: z.string().trim().min(1),
   serviceId: z.uuid(),
   startsAt: z.string().datetime({ offset: true }),
+  botProtectionToken: optionalText,
   customer: z.object({
     firstName: requiredText,
     lastName: requiredText,

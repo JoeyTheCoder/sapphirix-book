@@ -46,7 +46,7 @@ type TimeOffFormState = {
   reason: string;
 };
 
-const weekdayLabels = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const weekdayLabels = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
 
 function createEmptySalonForm(): SalonFormState {
   return {
@@ -123,34 +123,22 @@ function formatMoney(amount: number, currency: string): string {
     <div style="min-height:100vh;background:var(--ff-bg);">
 
     <!-- Top nav -->
-    <header style="position:sticky;top:0;z-index:30;background:var(--ff-surface);border-bottom:1px solid var(--ff-line);">
-      <div style="max-width:1280px;margin:0 auto;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
-        <!-- Logo + salon name -->
-        <div style="display:flex;align-items:center;gap:12px;">
-          <img src="assets/images/Logo-textside.png" alt="FadeFlow" style="height:26px;object-fit:contain;" />
-          <span style="width:1px;height:18px;background:var(--ff-line);display:inline-block;"></span>
-          <span style="font-size:13px;color:var(--ff-ink-muted);">{{ salon()?.name }}</span>
+    <header class="ff-admin-topbar">
+      <div class="ff-admin-topbar-inner">
+        <div class="ff-admin-brand">
+          <img src="assets/images/Logo-textside.png" alt="FadeFlow" style="height:28px;width:auto;" />
+          <span class="ff-admin-brand-name">{{ salonName() }}</span>
+          <nav class="ff-admin-nav">
+            <a routerLink="/admin" class="ff-admin-nav-link" [class.active]="isActive('/admin')">Termine</a>
+            <a routerLink="/admin/settings" class="ff-admin-nav-link" [class.active]="isActive('/admin/settings')">Einstellungen</a>
+          </nav>
         </div>
-        <!-- Tab nav -->
-        <nav style="display:flex;gap:2px;background:var(--ff-bg);border-radius:var(--ff-r-md);padding:3px;border:1px solid var(--ff-line);">
-          <a routerLink="/admin"
-            style="padding:5px 14px;border-radius:4px;font-size:13px;font-weight:500;text-decoration:none;transition:all 0.15s;"
-            [style.background]="isActive('/admin') ? 'var(--ff-ink)' : 'transparent'"
-            [style.color]="isActive('/admin') ? '#fff' : 'var(--ff-ink-muted)'">Termine</a>
-          <a routerLink="/admin/settings"
-            style="padding:5px 14px;border-radius:4px;font-size:13px;font-weight:500;text-decoration:none;transition:all 0.15s;"
-            [style.background]="isActive('/admin/settings') ? 'var(--ff-ink)' : 'transparent'"
-            [style.color]="isActive('/admin/settings') ? '#fff' : 'var(--ff-ink-muted)'">Einstellungen</a>
-        </nav>
-        <!-- User + actions -->
         <div *ngIf="authService.adminProfile() as profile" style="display:flex;align-items:center;gap:8px;">
           <span style="font-size:13px;color:var(--ff-ink-muted);">{{ profile.admin.firstName }} {{ profile.admin.lastName }}</span>
-          <button type="button" (click)="reload()" title="Aktualisieren"
-            style="width:32px;height:32px;border-radius:50%;border:1px solid var(--ff-line);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ff-ink-muted);">
+          <button type="button" (click)="reload()" title="Aktualisieren" class="ff-admin-icon-btn">
             <i class="pi pi-refresh" style="font-size:13px;"></i>
           </button>
-          <button type="button" (click)="logout()" title="Abmelden"
-            style="width:32px;height:32px;border-radius:50%;border:1px solid var(--ff-line);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ff-ink-muted);">
+          <button type="button" (click)="logout()" title="Abmelden" class="ff-admin-icon-btn">
             <i class="pi pi-sign-out" style="font-size:13px;"></i>
           </button>
         </div>
@@ -171,39 +159,39 @@ function formatMoney(amount: number, currency: string): string {
       Einstellungen werden geladen…
     </div>
 
-    <!-- Layout: sidebar + content -->
-    <div *ngIf="!loading()" style="display:flex;max-width:1280px;margin:0 auto;padding:32px 24px;gap:32px;align-items:flex-start;">
+    <!-- Layout: heading + sidebar/content row -->
+    <div *ngIf="!loading()" style="max-width:1280px;margin:0 auto;padding:32px 24px;">
+      <div style="margin-bottom:24px;">
+        <p class="ff-mono" style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.2em;color:var(--ff-ink-muted);margin:0 0 4px 0;">{{ activeSectionEyebrow() }}</p>
+        <h2 class="ff-display" style="font-size:24px;color:var(--ff-ink);margin:0;">{{ activeSectionTitle() }}</h2>
+      </div>
 
-      <!-- Sidebar -->
-      <aside style="width:200px;flex-shrink:0;">
-        <nav style="background:var(--ff-surface);border:1px solid var(--ff-line);border-radius:var(--ff-r-lg);overflow:hidden;">
-          <button type="button" *ngFor="let item of sidebarSections" (click)="activeSection.set(item.id)"
-            style="width:100%;text-align:left;padding:12px 16px;font-size:13px;font-weight:500;cursor:pointer;border:none;border-top:0;border-right:0;border-bottom:0;border-left:3px solid transparent;transition:all 0.12s;display:flex;align-items:center;gap:10px;background:transparent;"
-            [style.background]="activeSection() === item.id ? 'var(--ff-accent-soft)' : 'transparent'"
-            [style.color]="activeSection() === item.id ? 'var(--ff-accent-text)' : 'var(--ff-ink)'"
-            [style.border-left-color]="activeSection() === item.id ? 'var(--ff-accent)' : 'transparent'">
-            <i [class]="'pi ' + item.icon" style="font-size:13px;"></i>
-            {{ item.label }}
-          </button>
-        </nav>
+      <div style="display:flex;gap:32px;align-items:flex-start;">
+        <!-- Sidebar -->
+        <aside style="width:200px;flex-shrink:0;">
+          <nav style="background:var(--ff-surface);border:1px solid var(--ff-line);border-radius:var(--ff-r-lg);overflow:hidden;">
+            <button type="button" *ngFor="let item of sidebarSections" (click)="activeSection.set(item.id)"
+              style="width:100%;text-align:left;padding:12px 16px;font-size:13px;font-weight:500;cursor:pointer;border:none;border-top:0;border-right:0;border-bottom:0;border-left:3px solid transparent;transition:all 0.12s;display:flex;align-items:center;gap:10px;background:transparent;"
+              [style.background]="activeSection() === item.id ? 'var(--ff-accent-soft)' : 'transparent'"
+              [style.color]="activeSection() === item.id ? 'var(--ff-accent-text)' : 'var(--ff-ink)'"
+              [style.border-left-color]="activeSection() === item.id ? 'var(--ff-accent)' : 'transparent'">
+              <i [class]="'pi ' + item.icon" style="font-size:13px;"></i>
+              {{ item.label }}
+            </button>
+          </nav>
 
-        <!-- Booking URL -->
-        <div *ngIf="salon()" style="margin-top:16px;background:var(--ff-surface);border:1px solid var(--ff-line);border-radius:var(--ff-r-lg);padding:14px;">
-          <p style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.12em;color:var(--ff-ink-muted);margin:0 0 6px 0;">Buchungs-Link</p>
-          <p class="ff-mono" style="font-size:10px;color:var(--ff-ink-muted);word-break:break-all;line-height:1.4;margin:0;">/b/{{ salon()!.slug }}</p>
-        </div>
-      </aside>
+          <!-- Booking URL -->
+          <div *ngIf="salon()" style="margin-top:16px;background:var(--ff-surface);border:1px solid var(--ff-line);border-radius:var(--ff-r-lg);padding:14px;">
+            <p style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.12em;color:var(--ff-ink-muted);margin:0 0 6px 0;">Buchungs-Link</p>
+            <p class="ff-mono" style="font-size:10px;color:var(--ff-ink-muted);word-break:break-all;line-height:1.4;margin:0;">{{ bookingUrl() }}</p>
+          </div>
+        </aside>
 
-      <!-- Main content -->
-      <main style="flex:1;min-width:0;">
+        <!-- Main content -->
+        <main style="flex:1;min-width:0;">
 
         <!-- SALON-PROFIL -->
         <section *ngIf="activeSection() === 'profil'">
-          <div style="margin-bottom:24px;">
-            <p class="ff-mono" style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.2em;color:var(--ff-ink-muted);margin:0 0 4px 0;">SALON-PROFIL</p>
-            <h2 class="ff-display" style="font-size:24px;color:var(--ff-ink);margin:0;">Salon-Einstellungen</h2>
-          </div>
-
           <div style="display:grid;grid-template-columns:1fr 280px;gap:24px;align-items:flex-start;">
             <!-- Profile form -->
             <div style="background:var(--ff-surface);border:1px solid var(--ff-line);border-radius:var(--ff-r-lg);overflow:hidden;">
@@ -289,11 +277,6 @@ function formatMoney(amount: number, currency: string): string {
 
         <!-- LEISTUNGEN -->
         <section *ngIf="activeSection() === 'leistungen'">
-          <div style="margin-bottom:24px;">
-            <p class="ff-mono" style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.2em;color:var(--ff-ink-muted);margin:0 0 4px 0;">LEISTUNGEN</p>
-            <h2 class="ff-display" style="font-size:24px;color:var(--ff-ink);margin:0;">Angebote verwalten</h2>
-          </div>
-
           <!-- Service form -->
           <div style="background:var(--ff-surface);border:1px solid var(--ff-line);border-radius:var(--ff-r-lg);margin-bottom:16px;overflow:hidden;">
             <div style="padding:16px 24px;border-bottom:1px solid var(--ff-line);display:flex;align-items:center;justify-content:space-between;">
@@ -369,11 +352,6 @@ function formatMoney(amount: number, currency: string): string {
 
         <!-- ÖFFNUNGSZEITEN -->
         <section *ngIf="activeSection() === 'oeffnungszeiten'">
-          <div style="margin-bottom:24px;">
-            <p class="ff-mono" style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.2em;color:var(--ff-ink-muted);margin:0 0 4px 0;">ÖFFNUNGSZEITEN</p>
-            <h2 class="ff-display" style="font-size:24px;color:var(--ff-ink);margin:0;">Wöchentliche Zeiten</h2>
-          </div>
-
           <div style="background:var(--ff-surface);border:1px solid var(--ff-line);border-radius:var(--ff-r-lg);overflow:hidden;">
             <div style="padding:16px 24px;border-bottom:1px solid var(--ff-line);display:flex;align-items:center;justify-content:space-between;">
               <h3 style="font-size:14px;font-weight:600;color:var(--ff-ink);margin:0;">Wochenplan</h3>
@@ -420,11 +398,6 @@ function formatMoney(amount: number, currency: string): string {
 
         <!-- ABWESENHEITEN -->
         <section *ngIf="activeSection() === 'abwesenheiten'">
-          <div style="margin-bottom:24px;">
-            <p class="ff-mono" style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.2em;color:var(--ff-ink-muted);margin:0 0 4px 0;">ABWESENHEITEN</p>
-            <h2 class="ff-display" style="font-size:24px;color:var(--ff-ink);margin:0;">Sperrzeiten</h2>
-          </div>
-
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:flex-start;">
             <!-- Form -->
             <div style="background:var(--ff-surface);border:1px solid var(--ff-line);border-radius:var(--ff-r-lg);overflow:hidden;">
@@ -475,11 +448,6 @@ function formatMoney(amount: number, currency: string): string {
 
         <!-- BUCHUNGSREGELN -->
         <section *ngIf="activeSection() === 'buchungsregeln'">
-          <div style="margin-bottom:24px;">
-            <p class="ff-mono" style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.2em;color:var(--ff-ink-muted);margin:0 0 4px 0;">BUCHUNGSREGELN</p>
-            <h2 class="ff-display" style="font-size:24px;color:var(--ff-ink);margin:0;">Buchungseinstellungen</h2>
-          </div>
-
           <div style="background:var(--ff-surface);border:1px solid var(--ff-line);border-radius:var(--ff-r-lg);overflow:hidden;max-width:480px;">
             <div style="padding:16px 24px;border-bottom:1px solid var(--ff-line);display:flex;align-items:center;justify-content:space-between;">
               <h3 style="font-size:14px;font-weight:600;color:var(--ff-ink);margin:0;">Puffer-Zeit</h3>
@@ -496,7 +464,8 @@ function formatMoney(amount: number, currency: string): string {
           </div>
         </section>
 
-      </main>
+        </main>
+      </div>
     </div>
     </div>
   `,
@@ -566,7 +535,7 @@ export class AdminShellPage {
       this.applyOpeningHours(openingHours);
       this.statusMessage.set(null);
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Failed to load the salon setup.';
+      const message = error instanceof Error ? error.message : 'Die Salon-Einstellungen konnten nicht geladen werden.';
       this.loadError.set(message);
     } finally {
       this.loading.set(false);
@@ -579,6 +548,44 @@ export class AdminShellPage {
 
   isActive(path: string): boolean {
     return this.router.url === path;
+  }
+
+  activeSectionEyebrow(): string {
+    switch (this.activeSection()) {
+      case 'profil':
+        return 'SALON-PROFIL';
+      case 'leistungen':
+        return 'LEISTUNGEN';
+      case 'oeffnungszeiten':
+        return 'ÖFFNUNGSZEITEN';
+      case 'abwesenheiten':
+        return 'ABWESENHEITEN';
+      case 'buchungsregeln':
+        return 'BUCHUNGSREGELN';
+    }
+
+    return '';
+  }
+
+  activeSectionTitle(): string {
+    switch (this.activeSection()) {
+      case 'profil':
+        return 'Salon-Einstellungen';
+      case 'leistungen':
+        return 'Angebote verwalten';
+      case 'oeffnungszeiten':
+        return 'Wöchentliche Zeiten';
+      case 'abwesenheiten':
+        return 'Sperrzeiten';
+      case 'buchungsregeln':
+        return 'Buchungseinstellungen';
+    }
+
+    return '';
+  }
+
+  salonName(): string {
+    return this.salon()?.name ?? this.authService.adminProfile()?.salon.name ?? '';
   }
 
   logoUrl(): string | null {
@@ -612,9 +619,9 @@ export class AdminShellPage {
 
       this.salon.set(salon);
       this.applySalonForm(salon);
-      this.statusMessage.set('Salon profile saved.');
+      this.statusMessage.set('Salon-Profil gespeichert.');
     } catch (error: unknown) {
-      this.loadError.set(error instanceof Error ? error.message : 'Failed to save salon profile.');
+      this.loadError.set(error instanceof Error ? error.message : 'Das Salon-Profil konnte nicht gespeichert werden.');
     } finally {
       this.savingProfile.set(false);
     }
@@ -635,9 +642,9 @@ export class AdminShellPage {
       const salon = await this.adminSetupApi.uploadSalonLogo(file);
       this.salon.set(salon);
       this.applySalonForm(salon);
-      this.statusMessage.set('Salon logo uploaded.');
+      this.statusMessage.set('Salon-Logo hochgeladen.');
     } catch (error: unknown) {
-      this.loadError.set(error instanceof Error ? error.message : 'Failed to upload the salon logo.');
+      this.loadError.set(error instanceof Error ? error.message : 'Das Salon-Logo konnte nicht hochgeladen werden.');
     } finally {
       input.value = '';
       this.uploadingLogo.set(false);
@@ -680,23 +687,23 @@ export class AdminShellPage {
       if (currentServiceId) {
         const updatedService = await this.adminSetupApi.updateService(currentServiceId, payload);
         this.services.set(this.services().map((service) => (service.id === updatedService.id ? updatedService : service)));
-        this.statusMessage.set('Service updated.');
+        this.statusMessage.set('Leistung aktualisiert.');
       } else {
         const createdService = await this.adminSetupApi.createService(payload);
         this.services.set([...this.services(), createdService].sort((left, right) => left.sortOrder - right.sortOrder || left.name.localeCompare(right.name)));
-        this.statusMessage.set('Service created.');
+        this.statusMessage.set('Leistung erstellt.');
       }
 
       this.resetServiceForm();
     } catch (error: unknown) {
-      this.loadError.set(error instanceof Error ? error.message : 'Failed to save the service.');
+      this.loadError.set(error instanceof Error ? error.message : 'Die Leistung konnte nicht gespeichert werden.');
     } finally {
       this.savingService.set(false);
     }
   }
 
   async removeService(serviceId: string): Promise<void> {
-    const shouldArchive = window.confirm('Archive this service? Existing bookings will keep their old reference.');
+    const shouldArchive = window.confirm('Diese Leistung archivieren? Bestehende Termine behalten ihre Referenz.');
 
     if (!shouldArchive) {
       return;
@@ -712,9 +719,9 @@ export class AdminShellPage {
         this.resetServiceForm();
       }
 
-      this.statusMessage.set('Service archived.');
+      this.statusMessage.set('Leistung archiviert.');
     } catch (error: unknown) {
-      this.loadError.set(error instanceof Error ? error.message : 'Failed to archive the service.');
+      this.loadError.set(error instanceof Error ? error.message : 'Die Leistung konnte nicht archiviert werden.');
     }
   }
 
@@ -758,16 +765,16 @@ export class AdminShellPage {
       for (const day of days) {
         for (const slot of day.slots) {
           if (!slot.startTime || !slot.endTime) {
-            throw new Error('Each opening-hour shift needs both a start and an end time.');
+            throw new Error('Jede Schicht braucht eine Start- und Endzeit.');
           }
         }
       }
 
       const openingHours = await this.adminSetupApi.replaceOpeningHours({ days });
       this.applyOpeningHours(openingHours);
-      this.statusMessage.set('Opening hours saved.');
+      this.statusMessage.set('Öffnungszeiten gespeichert.');
     } catch (error: unknown) {
-      this.loadError.set(error instanceof Error ? error.message : 'Failed to save opening hours.');
+      this.loadError.set(error instanceof Error ? error.message : 'Die Öffnungszeiten konnten nicht gespeichert werden.');
     } finally {
       this.savingOpeningHours.set(false);
     }
@@ -779,7 +786,7 @@ export class AdminShellPage {
 
     try {
       if (!this.timeOffForm.startsAt || !this.timeOffForm.endsAt) {
-        throw new Error('Start and end are required for a blocked period.');
+        throw new Error('Für eine Sperrzeit sind Start und Ende erforderlich.');
       }
 
       const timeOffBlock = await this.adminSetupApi.createTimeOffBlock({
@@ -794,16 +801,16 @@ export class AdminShellPage {
         ),
       );
       this.timeOffForm = createEmptyTimeOffForm();
-      this.statusMessage.set('Blocked period added.');
+      this.statusMessage.set('Sperrzeit hinzugefügt.');
     } catch (error: unknown) {
-      this.loadError.set(error instanceof Error ? error.message : 'Failed to add the blocked period.');
+      this.loadError.set(error instanceof Error ? error.message : 'Die Sperrzeit konnte nicht hinzugefügt werden.');
     } finally {
       this.savingTimeOff.set(false);
     }
   }
 
   async removeTimeOffBlock(blockId: string): Promise<void> {
-    const shouldDelete = window.confirm('Remove this blocked period?');
+    const shouldDelete = window.confirm('Diese Sperrzeit entfernen?');
 
     if (!shouldDelete) {
       return;
@@ -814,10 +821,20 @@ export class AdminShellPage {
     try {
       await this.adminSetupApi.deleteTimeOffBlock(blockId);
       this.timeOffBlocks.set(this.timeOffBlocks().filter((block) => block.id !== blockId));
-      this.statusMessage.set('Blocked period removed.');
+      this.statusMessage.set('Sperrzeit entfernt.');
     } catch (error: unknown) {
-      this.loadError.set(error instanceof Error ? error.message : 'Failed to remove the blocked period.');
+      this.loadError.set(error instanceof Error ? error.message : 'Die Sperrzeit konnte nicht entfernt werden.');
     }
+  }
+
+  bookingUrl(): string {
+    const slug = this.salon()?.slug;
+
+    if (!slug) {
+      return '';
+    }
+
+    return `${window.location.origin}/s/${slug}/book`;
   }
 
   formatMoneyValue(amount: number, currency: string): string {

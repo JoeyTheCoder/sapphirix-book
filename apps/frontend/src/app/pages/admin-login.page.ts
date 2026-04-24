@@ -47,70 +47,21 @@ import { AuthService } from '../core/auth.service';
     .ff-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
   `],
   template: `
-    <main style="min-height:100vh; display:grid; grid-template-columns: 3fr 2fr;">
-
-      <!-- Left panel — editorial branding -->
-      <div style="background:var(--ff-bg); display:flex; flex-direction:column; justify-content:space-between; padding: 48px 64px;">
-        <!-- Wordmark -->
-        <div style="display:flex; align-items:center; gap:12px;">
-          <img src="assets/images/logo-textbottom.png" alt="FadeFlow" style="height:80px; width:auto;" />
+    <main style="min-height:100vh;background:radial-gradient(circle at top left, rgba(22,193,198,0.12), transparent 26%), radial-gradient(circle at top right, rgba(15,30,58,0.08), transparent 22%), var(--ff-bg);display:flex;align-items:center;justify-content:center;padding:32px 20px;">
+      <div style="width:100%;max-width:460px;">
+        <div style="display:flex;justify-content:center;margin-bottom:28px;">
+          <img src="assets/images/logo-textbottom.png" alt="FadeFlow" style="height:124px;width:auto;filter:drop-shadow(0 14px 24px rgba(15,30,58,0.08));" />
         </div>
 
-        <!-- Hero copy -->
-        <div>
-          <p class="ff-mono" style="font-size:11px; letter-spacing:0.16em; color:var(--ff-ink-faint); text-transform:uppercase; margin-bottom:16px;">For Swiss Coiffeurs</p>
-          <h1 class="ff-display" style="font-size:44px; font-weight:400; line-height:1.05; letter-spacing:-0.02em; color:var(--ff-ink); margin:0 0 8px;">
-            Appointments,<br>
-            <em style="color:var(--ff-accent); font-style:italic;">beautifully</em> organised.
-          </h1>
-          <p style="font-size:14px; line-height:1.55; color:var(--ff-ink-muted); margin-top:16px; max-width:420px;">
-            One calm place for your day's schedule, your customers, and your services.<br>No noise, no fluff.
-          </p>
+        <section style="background:rgba(255,255,255,0.88);backdrop-filter:blur(12px);border:1px solid var(--ff-line);border-radius:20px;box-shadow:0 24px 60px rgba(15,30,58,0.08);padding:32px 28px;">
+          <h1 class="ff-display" style="font-size:38px; font-weight:400; letter-spacing:-0.02em; color:var(--ff-ink); margin:0 0 10px; text-align:center;">Willkommen zurück</h1>
+          <p style="font-size:14px; line-height:1.55; color:var(--ff-ink-muted); margin:0 0 28px; text-align:center;">Melde dich an, um Termine, Öffnungszeiten und Einstellungen deines Salons zu verwalten.</p>
 
-          <ul style="margin-top:40px; list-style:none; padding:0; display:flex; flex-direction:column; gap:16px;">
-            <li style="display:flex; align-items:flex-start; gap:16px;">
-              <span class="ff-mono" style="font-size:11px; color:var(--ff-accent); min-width:20px; margin-top:2px;">01</span>
-              <div>
-                <p style="font-size:14px; font-weight:600; color:var(--ff-ink); margin:0;">Terminbuch</p>
-                <p style="font-size:13px; color:var(--ff-ink-muted); margin:2px 0 0;">Tagesplan in Echtzeit</p>
-              </div>
-            </li>
-            <li style="display:flex; align-items:flex-start; gap:16px;">
-              <span class="ff-mono" style="font-size:11px; color:var(--ff-accent); min-width:20px; margin-top:2px;">02</span>
-              <div>
-                <p style="font-size:14px; font-weight:600; color:var(--ff-ink); margin:0;">Online-Buchung</p>
-                <p style="font-size:13px; color:var(--ff-ink-muted); margin:2px 0 0;">Öffentliche Seite unter /s/ihr-salon</p>
-              </div>
-            </li>
-            <li style="display:flex; align-items:flex-start; gap:16px;">
-              <span class="ff-mono" style="font-size:11px; color:var(--ff-accent); min-width:20px; margin-top:2px;">03</span>
-              <div>
-                <p style="font-size:14px; font-weight:600; color:var(--ff-ink); margin:0;">Einstellungen</p>
-                <p style="font-size:13px; color:var(--ff-ink-muted); margin:2px 0 0;">Leistungen, Öffnungszeiten, Team</p>
-              </div>
-            </li>
-          </ul>
-        </div>
-
-        <p class="ff-mono" style="font-size:11px; color:var(--ff-ink-faint);">© 2026 FadeFlow</p>
-      </div>
-
-      <!-- Right panel — login form -->
-      <div style="background:var(--ff-surface); border-left:1px solid var(--ff-line); display:flex; flex-direction:column; justify-content:center; padding:48px 40px;">
-        <div style="max-width:360px; width:100%;">
-
-          <!-- Eyebrow -->
-          <p class="ff-mono" style="font-size:10px; letter-spacing:0.16em; color:var(--ff-ink-faint); text-transform:uppercase; margin:0 0 12px;">Admin Zugang</p>
-          <h2 class="ff-display" style="font-size:32px; font-weight:400; letter-spacing:-0.01em; color:var(--ff-ink); margin:0 0 8px;">Anmelden</h2>
-          <p style="font-size:13.5px; color:var(--ff-ink-muted); margin:0 0 32px;">Nur für registrierte Salon-Administratoren.</p>
-
-          <!-- Firebase warning -->
           <div *ngIf="!authService.isFirebaseConfigured()"
             style="margin-bottom:20px; padding:12px 14px; border:1px solid #fbbf24; border-radius:var(--ff-r-md); background:#fffbeb; font-size:13px; color:#92400e;">
-            Firebase-Konfiguration fehlt. Bitte <code style="font-size:11px; background:#fef3c7; padding:1px 4px; border-radius:3px;">firebase-public.config.ts</code> aktualisieren.
+            Firebase-Konfiguration fehlt. Bitte die öffentlichen Firebase-Werte in der Root-Umgebung ergänzen.
           </div>
 
-          <!-- Error -->
           <div *ngIf="errorMessage()"
             style="margin-bottom:20px; padding:12px 14px; border:1px solid var(--ff-bad); border-left:3px solid var(--ff-bad); border-radius:var(--ff-r-md); background:var(--ff-bad-soft); font-size:13px; color:var(--ff-bad);">
             {{ errorMessage() }}
@@ -118,7 +69,7 @@ import { AuthService } from '../core/auth.service';
 
           <form (ngSubmit)="submit()" style="display:flex; flex-direction:column; gap:18px;">
             <div>
-              <label class="ff-mono" style="display:block; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--ff-ink-faint); margin-bottom:6px;" for="email">E-Mail Adresse</label>
+              <label class="ff-mono" style="display:block; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--ff-ink-faint); margin-bottom:6px;" for="email">E-Mail-Adresse</label>
               <input
                 id="email"
                 name="email"
@@ -151,9 +102,9 @@ import { AuthService } from '../core/auth.service';
             </button>
           </form>
 
-        </div>
+          <p class="ff-mono" style="font-size:11px; color:var(--ff-ink-faint); text-align:center; margin:22px 0 0;">© 2026 FadeFlow</p>
+        </section>
       </div>
-
     </main>
   `,
 })
@@ -173,7 +124,7 @@ export class AdminLoginPage {
     try {
       await this.authService.signIn(this.email, this.password);
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Sign in failed. Please try again.';
+      const message = error instanceof Error ? error.message : 'Die Anmeldung ist fehlgeschlagen. Bitte versuche es erneut.';
       this.errorMessage.set(this.authService.lastError() ?? message);
     } finally {
       this.submitting.set(false);

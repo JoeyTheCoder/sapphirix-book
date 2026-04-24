@@ -3,6 +3,10 @@
 export const frontendEnv = {
   "apiBaseUrl": "http://localhost:3000/api/v1",
   "assetBaseUrl": "http://localhost:3000",
+  "botProtection": {
+    "enabled": false,
+    "turnstileSiteKey": ""
+  },
   "firebasePublicConfig": {
     "apiKey": "AIzaSyBpz1dxm7IJefeezbq7pdib0D9OhUUuaHw",
     "authDomain": "barboo-27dcc.firebaseapp.com",

@@ -43,6 +43,106 @@ body {
   background-color: var(--ff-bg);
 }
 
+.ff-input {
+  display: block;
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--ff-line);
+  border-radius: var(--ff-r-md);
+  background: var(--ff-surface);
+  font-size: 13.5px;
+  color: var(--ff-ink);
+  outline: none;
+  transition: border-color 150ms, box-shadow 150ms, background-color 150ms;
+}
+
+.ff-input::placeholder {
+  color: var(--ff-ink-faint);
+}
+
+textarea.ff-input {
+  min-height: 88px;
+  padding: 10px 12px;
+}
+
+.ff-admin-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: var(--ff-surface);
+  border-bottom: 1px solid var(--ff-line);
+}
+
+.ff-admin-topbar-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 56px;
+}
+
+.ff-admin-brand {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.ff-admin-brand-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ff-ink);
+}
+
+.ff-admin-nav {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  min-height: 56px;
+}
+
+.ff-admin-nav-link {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ff-ink-muted);
+  padding: 16px 4px;
+  border-bottom: 2px solid transparent;
+  text-decoration: none;
+  transition: color 120ms, border-color 120ms;
+}
+
+.ff-admin-nav-link:hover {
+  color: var(--ff-ink);
+}
+
+.ff-admin-nav-link.active {
+  color: var(--ff-ink);
+  border-bottom-color: var(--ff-ink);
+}
+
+.ff-admin-icon-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--ff-line);
+  border-radius: var(--ff-r-md);
+  background: var(--ff-surface);
+  color: var(--ff-ink-muted);
+  cursor: pointer;
+  transition: border-color 120ms, color 120ms;
+}
+
+.ff-admin-icon-btn:hover {
+  border-color: var(--ff-line-strong);
+  color: var(--ff-ink);
+}
+
 /* Display type — Fraunces serif for editorial headings */
 .ff-display {
   font-family: "Fraunces", "Instrument Serif", Georgia, serif;

@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
+    "start": "node dist/index.js",
+    "test:smoke": "vitest run src/smoke",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/scripts/db-migrate.ts",
     "provision:dev-admin": "tsx src/scripts/provision-dev-admin.ts"
@@ -25,8 +27,11 @@
     "@types/multer": "^2.1.0",
     "@types/node": "^25.6.0",
     "@types/pg": "^8.20.0",
+    "@types/supertest": "^6.0.3",
     "drizzle-kit": "^0.31.10",
     "tsx": "^4.21.0",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "supertest": "^7.1.1",
+    "vitest": "^4.0.8"
   }
 }

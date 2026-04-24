@@ -1,6 +1,7 @@
 import { Router } from 'express';
 
 import { HttpError } from '../errors/http-error.js';
+import { verifyBotProtection } from '../middleware/verify-bot-protection.js';
 import { validateBody } from '../middleware/validate-body.js';
 import {
   availabilityCalendarPreviewQuerySchema,
@@ -79,7 +80,7 @@ export function createPublicRouter(): Router {
     }
   });
 
-  router.post('/bookings', validateBody(createBookingSchema), async (req, res, next) => {
+  router.post('/bookings', validateBody(createBookingSchema), verifyBotProtection, async (req, res, next) => {
     try {
       const booking = await createBooking(req.body);
       res.status(201).json({ booking });

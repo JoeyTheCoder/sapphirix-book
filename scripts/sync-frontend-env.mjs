@@ -54,6 +54,10 @@ const assetBaseUrl = parsedEnv.PUBLIC_ASSET_BASE_URL || `http://localhost:${back
 const frontendEnv = {
   apiBaseUrl,
   assetBaseUrl,
+  botProtection: {
+    enabled: parsedEnv.PUBLIC_BOT_PROTECTION_ENABLED === 'true',
+    turnstileSiteKey: parsedEnv.PUBLIC_TURNSTILE_SITE_KEY || '',
+  },
   firebasePublicConfig: {
     apiKey: parsedEnv.PUBLIC_FIREBASE_API_KEY || '',
     authDomain: parsedEnv.PUBLIC_FIREBASE_AUTH_DOMAIN || '',

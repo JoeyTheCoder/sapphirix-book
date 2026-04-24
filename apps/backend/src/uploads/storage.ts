@@ -5,14 +5,16 @@ import { fileURLToPath } from 'node:url';
 
 import multer from 'multer';
 
+import { getEnv } from '../config/env.js';
 import { HttpError } from '../errors/http-error.js';
 
 const allowedImageMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
 const backendRoot = path.resolve(currentDirectory, '..', '..');
+const env = getEnv();
 
-export const uploadsRoot = path.join(backendRoot, 'uploads');
+export const uploadsRoot = env.UPLOADS_DIR ? path.resolve(env.UPLOADS_DIR) : path.join(backendRoot, 'uploads');
 const salonLogosRoot = path.join(uploadsRoot, 'salon-logos');
 
 mkdirSync(salonLogosRoot, { recursive: true });

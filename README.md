@@ -96,6 +96,9 @@ pnpm env:sync
 pnpm db:dump
 pnpm db:restore -- ./.backups/your-dump.sql
 pnpm provision:dev-admin -- --salon-name "Demo Salon" --salon-slug demo-salon --admin-email owner@example.com --admin-password "ChangeMe123!" --admin-first-name Demo --admin-last-name Owner
+pnpm build:frontend
+pnpm build:backend
+pnpm start:backend
 pnpm dev
 pnpm dev:frontend
 pnpm dev:backend
@@ -119,6 +122,37 @@ Recommended flow:
 4. Run `pnpm --filter backend db:migrate` afterward if the target repo revision is newer.
 
 This is the pragmatic way to keep salon/admin/service/test-booking data aligned across devices while keeping `.env` and Docker volumes local-only.
+
+---
+
+## Production Baseline
+
+Phase 8 currently targets one pilot salon on one Ubuntu VPS.
+
+Recommended first-pilot shape:
+
+- Nginx serves the Angular frontend static files
+- Nginx reverse proxies `/api` to the backend on `127.0.0.1:3000`
+- The backend runs as one long-running `systemd` service
+- PostgreSQL runs on the same VPS
+- Uploads live outside the app release folder, for example `/var/www/sapphirix/uploads`
+- Frontend deployment is handled by GitHub Actions
+
+Start from [/.env.production.example](.env.production.example) for the production env shape.
+
+Production deploy assets live in:
+
+- [infra/DEPLOY.md](infra/DEPLOY.md)
+- [infra/nginx/sapphirix.conf](infra/nginx/sapphirix.conf)
+- [infra/systemd/sapphirix-backend.service](infra/systemd/sapphirix-backend.service)
+- [infra/scripts/deploy-backend.sh](infra/scripts/deploy-backend.sh)
+- [infra/scripts/backup-sapphirix.sh](infra/scripts/backup-sapphirix.sh)
+- [infra/release-checklist.md](infra/release-checklist.md)
+
+GitHub Actions now includes:
+
+- build and smoke-test validation in [/.github/workflows/ci.yml](.github/workflows/ci.yml)
+- frontend deploy workflow in [/.github/workflows/deploy-frontend.yml](.github/workflows/deploy-frontend.yml)
 
 ---
 
@@ -151,6 +185,8 @@ What this does:
 3. Creates the matching `admins` table row linked by Firebase UID.
 
 If the salon or Firebase user already exists, the script reuses them. If the existing admin linkage is inconsistent, it stops instead of silently creating broken auth state.
+
+The script now prints URLs based on `PUBLIC_APP_ORIGIN`, so it also works for production onboarding when that env value is set correctly.
 
 ---
 

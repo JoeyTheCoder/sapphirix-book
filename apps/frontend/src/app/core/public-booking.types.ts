@@ -86,6 +86,7 @@ export type CreateBookingPayload = {
   salonSlug: string;
   serviceId: string;
   startsAt: string;
+  botProtectionToken?: string;
   customer: {
     firstName: string;
     lastName: string;

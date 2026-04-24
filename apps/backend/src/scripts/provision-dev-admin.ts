@@ -3,6 +3,7 @@ import { parseArgs } from 'node:util';
 import { and, eq } from 'drizzle-orm';
 
 import { db, pool } from '../db/client.js';
+import { getEnv } from '../config/env.js';
 import { admins, salons } from '../db/schema.js';
 import { getFirebaseAdminAuth } from '../firebase/firebase-admin.js';
 
@@ -190,6 +191,7 @@ async function ensureAdminRecord(
 }
 
 async function main() {
+  const env = getEnv();
   const { values } = parseArgs({
     options: {
       'salon-name': { type: 'string' },
@@ -218,8 +220,8 @@ async function main() {
   console.log(`Salon: ${salonCreated ? 'created' : 'reused'} (${salon.slug})`);
   console.log(`Firebase user: ${firebaseCreated ? 'created' : 'reused'} (${user.email})`);
   console.log(`Admin record: ${adminCreated ? 'created' : 'reused'} (${admin.email})`);
-  console.log(`Admin login URL: http://localhost:4200/admin/login`);
-  console.log(`Public booking URL: http://localhost:4200/s/${salon.slug}/book`);
+  console.log(`Admin login URL: ${env.PUBLIC_APP_ORIGIN}/admin/login`);
+  console.log(`Public booking URL: ${env.PUBLIC_APP_ORIGIN}/s/${salon.slug}/book`);
   console.log(`Firebase UID: ${user.uid}`);
 }
 
