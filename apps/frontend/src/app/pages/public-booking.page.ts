@@ -5,6 +5,7 @@ import { ActivatedRoute } from '@angular/router';
 
 import { PublicBookingApiService } from '../core/public-booking-api.service';
 import { frontendEnv } from '../core/frontend-env';
+import { AppFooterComponent } from '../shared/app-footer.component';
 import { TurnstileWidgetComponent } from '../shared/turnstile-widget.component';
 import type {
   AvailabilityCalendarPreviewDay,
@@ -109,7 +110,7 @@ function readErrorMessage(error: unknown, fallbackMessage: string): string {
 @Component({
   selector: 'app-public-booking-page',
   standalone: true,
-  imports: [FormsModule, NgFor, NgIf, TurnstileWidgetComponent],
+  imports: [FormsModule, NgFor, NgIf, TurnstileWidgetComponent, AppFooterComponent],
   styles: [`
     .ff-public-header-inner { max-width: 720px; margin: 0 auto; display: flex; align-items: center; gap: 14px; }
     .ff-public-page { max-width: 720px; margin: 0 auto; padding: 40px 24px; }
@@ -132,7 +133,7 @@ function readErrorMessage(error: unknown, fallbackMessage: string): string {
   `],
   template: `
     <!-- FadeFlow public booking page -->
-    <div style="min-height:100vh;background:var(--ff-bg);">
+    <div style="min-height:100vh;background:var(--ff-bg);display:flex;flex-direction:column;">
 
       <!-- Header -->
       <header style="background:var(--ff-surface);border-bottom:1px solid var(--ff-line);padding:16px 24px;">
@@ -147,6 +148,8 @@ function readErrorMessage(error: unknown, fallbackMessage: string): string {
           </div>
         </div>
       </header>
+
+      <div style="flex:1;">
 
       <!-- Loading / error -->
       <div *ngIf="loading()" style="display:flex;align-items:center;justify-content:center;padding:96px 24px;color:var(--ff-ink-muted);gap:12px;">
@@ -380,6 +383,9 @@ function readErrorMessage(error: unknown, fallbackMessage: string): string {
         </div>
 
       </div>
+      </div>
+
+      <app-footer [salonName]="salon()?.name ?? null" [salonPhone]="salon()?.phone ?? null" [salonEmail]="salon()?.email ?? null" />
     </div>
   `,
 })

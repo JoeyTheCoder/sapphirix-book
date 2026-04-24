@@ -5,6 +5,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { AdminSetupApiService } from '../core/admin-setup-api.service';
 import { AdminNotificationsService } from '../core/admin-notifications.service';
+import { AppFooterComponent } from '../shared/app-footer.component';
 import type {
   AdminBookingCalendar,
   AdminBookingItem,
@@ -136,7 +137,7 @@ function createEmptyManualBookingForm(selectedDate: string): ManualBookingFormSt
 @Component({
   selector: 'app-admin-bookings-page',
   standalone: true,
-  imports: [FormsModule, NgFor, NgIf, RouterLink],
+  imports: [FormsModule, NgFor, NgIf, RouterLink, AppFooterComponent],
   styles: [`
     .ff-bookings-page { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
     .ff-bookings-toolbar { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
@@ -194,6 +195,7 @@ function createEmptyManualBookingForm(selectedDate: string): ManualBookingFormSt
     }
   `],
   template: `
+    <div style="min-height:100vh;background:var(--ff-bg);display:flex;flex-direction:column;">
     <!-- Top navigation bar -->
     <header class="ff-admin-topbar">
       <div class="ff-admin-topbar-inner">
@@ -261,7 +263,7 @@ function createEmptyManualBookingForm(selectedDate: string): ManualBookingFormSt
       </div>
     </header>
 
-    <main style="min-height:calc(100vh - 56px); background:var(--ff-bg);">
+    <main style="flex:1; background:var(--ff-bg);">
       <div class="ff-bookings-page">
 
         <!-- Status / error banners -->
@@ -365,6 +367,9 @@ function createEmptyManualBookingForm(selectedDate: string): ManualBookingFormSt
         </div><!-- /!loading -->
       </div>
     </main>
+
+    <app-footer />
+    </div>
 
     <!-- Backdrop -->
     <div *ngIf="createDrawerOpen() || detailDrawerOpen()"

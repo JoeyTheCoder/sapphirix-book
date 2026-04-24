@@ -8,6 +8,7 @@ import { AdminNotificationsService } from '../core/admin-notifications.service';
 import type { AdminBookingItem, OpeningHourSlot, SalonProfile, ServiceItem, TimeOffBlock } from '../core/admin-setup.types';
 import { AuthService } from '../core/auth.service';
 import { frontendEnv } from '../core/frontend-env';
+import { AppFooterComponent } from '../shared/app-footer.component';
 
 type SalonFormState = {
   name: string;
@@ -133,7 +134,7 @@ function chfInputValueToCents(value: string): number {
 @Component({
   selector: 'app-admin-shell-page',
   standalone: true,
-  imports: [FormsModule, NgFor, NgIf, RouterLink],
+  imports: [FormsModule, NgFor, NgIf, RouterLink, AppFooterComponent],
   styles: [`
     .ff-settings-shell { max-width: 1280px; margin: 0 auto; padding: 32px 24px; }
     .ff-settings-layout { display: flex; gap: 32px; align-items: flex-start; }
@@ -162,7 +163,7 @@ function chfInputValueToCents(value: string): number {
   `],
   template: `
     <!-- FadeFlow admin shell -->
-    <div style="min-height:100vh;background:var(--ff-bg);">
+    <div style="min-height:100vh;background:var(--ff-bg);display:flex;flex-direction:column;">
 
     <!-- Top nav -->
     <header class="ff-admin-topbar">
@@ -228,6 +229,7 @@ function chfInputValueToCents(value: string): number {
       </div>
     </header>
 
+    <div style="flex:1;">
     <!-- Status banners -->
     <div *ngIf="statusMessage()" style="background:var(--ff-ok-soft);border-bottom:1px solid var(--ff-ok);padding:10px 24px;font-size:13px;color:var(--ff-ok);display:flex;align-items:center;gap:8px;">
       <i class="pi pi-check-circle"></i> {{ statusMessage() }}
@@ -554,6 +556,9 @@ function chfInputValueToCents(value: string): number {
         </main>
       </div>
     </div>
+    </div>
+
+    <app-footer />
     </div>
   `,
 })
