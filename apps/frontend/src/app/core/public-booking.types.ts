@@ -12,6 +12,7 @@ export type PublicSalon = {
   postalCode: string | null;
   city: string | null;
   countryCode: string;
+  staffMembers: { id: string; name: string }[];
 };
 
 export type PublicService = {
@@ -87,6 +88,7 @@ export type CreateBookingPayload = {
   serviceId: string;
   startsAt: string;
   botProtectionToken?: string;
+  staffMemberPreference?: string;
   customer: {
     firstName: string;
     lastName: string;

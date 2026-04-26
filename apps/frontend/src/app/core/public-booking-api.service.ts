@@ -19,12 +19,20 @@ export class PublicBookingApiService {
   private readonly http = inject(HttpClient);
 
   async getSalon(slug: string): Promise<PublicSalon> {
-    const response = await firstValueFrom(this.http.get<{ salon: PublicSalon }>(`${publicApiBaseUrl}/salons/${slug}`));
-    return response.salon;
+    const response = await firstValueFrom(this.http.get<{ salon: Omit<PublicSalon, 'staffMembers'> }>(`${publicApiBaseUrl}/salons/${slug}`));
+    return { ...response.salon, staffMembers: [] };
   }
 
   async getServices(slug: string): Promise<{ salon: PublicSalon; services: PublicService[] }> {
-    return firstValueFrom(this.http.get<{ salon: PublicSalon; services: PublicService[] }>(`${publicApiBaseUrl}/salons/${slug}/services`));
+    const response = await firstValueFrom(
+      this.http.get<{ salon: Omit<PublicSalon, 'staffMembers'>; services: PublicService[]; staffMembers: { id: string; name: string }[] }>(
+        `${publicApiBaseUrl}/salons/${slug}/services`,
+      ),
+    );
+    return {
+      salon: { ...response.salon, staffMembers: response.staffMembers ?? [] },
+      services: response.services,
+    };
   }
 
   async getAvailability(salonSlug: string, serviceId: string, date: string): Promise<AvailabilityResult> {

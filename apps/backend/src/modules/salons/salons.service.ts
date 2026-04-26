@@ -1,7 +1,7 @@
 import { and, asc, eq } from 'drizzle-orm';
 
 import { db } from '../../db/client.js';
-import { salons, services } from '../../db/schema.js';
+import { salons, services, staffMembers } from '../../db/schema.js';
 
 export async function getSalonBySlug(slug: string) {
   const [salon] = await db
@@ -47,8 +47,15 @@ export async function listServicesBySalonSlug(slug: string) {
     .where(and(eq(services.salonId, salon.id), eq(services.active, true)))
     .orderBy(asc(services.sortOrder), asc(services.name));
 
+  const staffRows = await db
+    .select({ id: staffMembers.id, name: staffMembers.name })
+    .from(staffMembers)
+    .where(and(eq(staffMembers.salonId, salon.id), eq(staffMembers.active, true)))
+    .orderBy(asc(staffMembers.sortOrder), asc(staffMembers.name));
+
   return {
     salon,
     services: serviceRows,
+    staffMembers: staffRows,
   };
 }

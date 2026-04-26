@@ -119,6 +119,7 @@ export const bookings = pgTable(
     currency: text('currency').notNull().default('CHF'),
     customerNotes: text('customer_notes'),
     internalNotes: text('internal_notes'),
+    staffMemberPreference: text('staff_member_preference'),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
     cancelledAt: timestamp('cancelled_at', { withTimezone: true, mode: 'date' }),
@@ -158,4 +159,19 @@ export const timeOffBlocks = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
   },
   (table) => [index('time_off_blocks_salon_id_idx').on(table.salonId)],
+);
+
+export const staffMembers = pgTable(
+  'staff_members',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    salonId: uuid('salon_id')
+      .notNull()
+      .references(() => salons.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    active: boolean('active').notNull().default(true),
+    sortOrder: integer('sort_order').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  },
+  (table) => [index('staff_members_salon_id_idx').on(table.salonId)],
 );

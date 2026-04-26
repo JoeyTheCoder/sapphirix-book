@@ -27,6 +27,7 @@ export const createBookingSchema = z.object({
   serviceId: z.uuid(),
   startsAt: z.string().datetime({ offset: true }),
   botProtectionToken: optionalText,
+  staffMemberPreference: optionalText,
   customer: z.object({
     firstName: requiredText,
     lastName: requiredText,

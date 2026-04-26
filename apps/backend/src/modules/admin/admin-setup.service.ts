@@ -1,10 +1,11 @@
 import { and, asc, eq } from 'drizzle-orm';
 
 import { db } from '../../db/client.js';
-import { salons, services, openingHours, timeOffBlocks } from '../../db/schema.js';
+import { salons, services, openingHours, timeOffBlocks, staffMembers } from '../../db/schema.js';
 import { HttpError } from '../../errors/http-error.js';
 import type {
   CreateServiceInput,
+  CreateStaffMemberInput,
   CreateTimeOffBlockInput,
   ReplaceOpeningHoursInput,
   UpdateSalonProfileInput,
@@ -271,5 +272,49 @@ export async function deleteTimeOffBlock(salonId: string, blockId: string) {
 
   if (!deletedBlock) {
     throw new HttpError(404, 'Time-off block not found');
+  }
+}
+
+// ── Staff members ────────────────────────────────────────────────────────────
+
+export async function listStaffMembers(salonId: string) {
+  return db
+    .select({
+      id: staffMembers.id,
+      name: staffMembers.name,
+      sortOrder: staffMembers.sortOrder,
+      createdAt: staffMembers.createdAt,
+    })
+    .from(staffMembers)
+    .where(and(eq(staffMembers.salonId, salonId), eq(staffMembers.active, true)))
+    .orderBy(asc(staffMembers.sortOrder), asc(staffMembers.name));
+}
+
+export async function createStaffMember(salonId: string, input: CreateStaffMemberInput) {
+  const [member] = await db
+    .insert(staffMembers)
+    .values({
+      salonId,
+      name: input.name,
+      sortOrder: input.sortOrder ?? 0,
+    })
+    .returning({
+      id: staffMembers.id,
+      name: staffMembers.name,
+      sortOrder: staffMembers.sortOrder,
+      createdAt: staffMembers.createdAt,
+    });
+
+  return member;
+}
+
+export async function deleteStaffMember(salonId: string, staffMemberId: string) {
+  const [deleted] = await db
+    .delete(staffMembers)
+    .where(and(eq(staffMembers.id, staffMemberId), eq(staffMembers.salonId, salonId)))
+    .returning({ id: staffMembers.id });
+
+  if (!deleted) {
+    throw new HttpError(404, 'Staff member not found');
   }
 }

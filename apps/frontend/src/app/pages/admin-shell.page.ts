@@ -5,7 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 
 import { AdminSetupApiService } from '../core/admin-setup-api.service';
 import { AdminNotificationsService } from '../core/admin-notifications.service';
-import type { AdminBookingItem, OpeningHourSlot, SalonProfile, ServiceItem, TimeOffBlock } from '../core/admin-setup.types';
+import type { AdminBookingItem, OpeningHourSlot, SalonProfile, ServiceItem, StaffMember, TimeOffBlock } from '../core/admin-setup.types';
 import { AuthService } from '../core/auth.service';
 import { frontendEnv } from '../core/frontend-env';
 import { AppFooterComponent } from '../shared/app-footer.component';
@@ -150,6 +150,8 @@ function chfInputValueToCents(value: string): number {
     .ff-opening-day-head { display: flex; align-items: center; gap: 16px; }
     .ff-opening-slot-row { display: flex; align-items: center; gap: 10px; }
     .ff-timeoff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: flex-start; }
+    .ff-btn-create { padding: 10px 20px; background: var(--ff-accent); color: #fff; border: none; border-radius: var(--ff-r-md); font-size: 13px; font-weight: 500; cursor: pointer; transition: background 150ms, box-shadow 150ms; }
+    .ff-btn-create:hover { background: var(--ff-accent-text); box-shadow: 0 2px 8px rgba(22,193,198,0.25); }
     @media (max-width: 900px) {
       .ff-settings-shell { padding: 24px 16px; }
       .ff-settings-layout { flex-direction: column; gap: 16px; }
@@ -401,8 +403,7 @@ function chfInputValueToCents(value: string): number {
                 <input [(ngModel)]="serviceForm.sortOrder" name="sortOrder" type="number" min="0" step="1" class="ff-input" style="width:100%;box-sizing:border-box;" />
               </div>
               <div class="ff-settings-form-span">
-                <button type="submit"
-                  style="padding:10px 20px;background:var(--ff-accent);color:#fff;border:none;border-radius:var(--ff-r-md);font-size:13px;font-weight:500;cursor:pointer;">
+                <button type="submit" class="ff-btn-create">
                   <i class="pi pi-spin pi-spinner" *ngIf="savingService()" style="margin-right:6px;"></i>
                   {{ editingServiceId() ? 'Aktualisieren' : 'Erstellen' }}
                 </button>
@@ -436,6 +437,46 @@ function chfInputValueToCents(value: string): number {
             <div *ngIf="services().length === 0" style="padding:48px 24px;text-align:center;color:var(--ff-ink-faint);">
               <i class="pi pi-box" style="font-size:24px;display:block;margin-bottom:10px;"></i>
               <p style="font-size:13px;margin:0;">Noch keine Leistungen. Erstelle dein erstes Angebot oben.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- MITARBEITER -->
+        <section *ngIf="activeSection() === 'mitarbeiter'">
+          <div style="background:var(--ff-surface);border:1px solid var(--ff-line);border-radius:var(--ff-r-lg);overflow:hidden;margin-bottom:20px;">
+            <div style="padding:16px 24px;border-bottom:1px solid var(--ff-line);">
+              <h3 style="font-size:14px;font-weight:600;color:var(--ff-ink);margin:0 0 4px;">Neuer Mitarbeiter</h3>
+              <p style="font-size:12px;color:var(--ff-ink-muted);margin:0;">Kunden können bei der Buchung einen Mitarbeiter als Wunsch angeben.</p>
+            </div>
+            <div style="padding:20px;display:flex;gap:10px;align-items:flex-end;">
+              <div style="flex:1;">
+                <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Name</label>
+                <input [(ngModel)]="newStaffMemberName" name="newStaffMemberName" placeholder="z.B. Ahmed" class="ff-input" style="width:100%;box-sizing:border-box;" (keyup.enter)="addStaffMember()" />
+              </div>
+              <button type="button" (click)="addStaffMember()" class="ff-btn-create" [disabled]="savingStaffMember() || !newStaffMemberName.trim()">
+                <i class="pi pi-spin pi-spinner" *ngIf="savingStaffMember()" style="margin-right:6px;"></i>
+                Hinzufügen
+              </button>
+            </div>
+          </div>
+
+          <div style="background:var(--ff-surface);border:1px solid var(--ff-line);border-radius:var(--ff-r-lg);overflow:hidden;">
+            <div style="padding:16px 24px;border-bottom:1px solid var(--ff-line);">
+              <h3 style="font-size:14px;font-weight:600;color:var(--ff-ink);margin:0;">Team ({{ staffMembers().length }})</h3>
+            </div>
+            <article *ngFor="let member of staffMembers()" style="display:flex;align-items:center;gap:16px;padding:14px 24px;border-bottom:1px solid var(--ff-line);">
+              <div style="width:36px;height:36px;border-radius:999px;background:var(--ff-accent-soft);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i class="pi pi-user" style="font-size:14px;color:var(--ff-accent-text);"></i>
+              </div>
+              <p style="flex:1;font-size:14px;font-weight:500;color:var(--ff-ink);margin:0;">{{ member.name }}</p>
+              <button type="button" (click)="removeStaffMember(member.id)"
+                style="padding:6px 10px;border:1px solid var(--ff-bad);border-radius:var(--ff-r-sm);background:transparent;cursor:pointer;font-size:12px;color:var(--ff-bad);">
+                <i class="pi pi-trash"></i>
+              </button>
+            </article>
+            <div *ngIf="staffMembers().length === 0" style="padding:48px 24px;text-align:center;color:var(--ff-ink-faint);">
+              <i class="pi pi-users" style="font-size:24px;display:block;margin-bottom:10px;"></i>
+              <p style="font-size:13px;margin:0;">Noch keine Mitarbeiter. Füge dein Team oben hinzu.</p>
             </div>
           </div>
         </section>
@@ -572,6 +613,7 @@ export class AdminShellPage {
   readonly sidebarSections = [
     { id: 'profil', label: 'Salon-Profil', icon: 'pi-building' },
     { id: 'leistungen', label: 'Leistungen', icon: 'pi-tag' },
+    { id: 'mitarbeiter', label: 'Mitarbeiter', icon: 'pi-users' },
     { id: 'oeffnungszeiten', label: 'Öffnungszeiten', icon: 'pi-clock' },
     { id: 'abwesenheiten', label: 'Abwesenheiten', icon: 'pi-calendar-times' },
     { id: 'buchungsregeln', label: 'Buchungsregeln', icon: 'pi-sliders-h' },
@@ -586,9 +628,11 @@ export class AdminShellPage {
   readonly editingServiceId = signal<string | null>(null);
   readonly savingOpeningHours = signal(false);
   readonly savingTimeOff = signal(false);
+  readonly savingStaffMember = signal(false);
 
   readonly salon = signal<SalonProfile | null>(null);
   readonly services = signal<ServiceItem[]>([]);
+  readonly staffMembers = signal<StaffMember[]>([]);
   readonly timeOffBlocks = signal<TimeOffBlock[]>([]);
   readonly upcomingBookings = signal<AdminBookingItem[]>([]);
 
@@ -596,6 +640,7 @@ export class AdminShellPage {
   serviceForm: ServiceFormState = createEmptyServiceForm();
   openingDays: OpeningDayState[] = createDefaultOpeningDays();
   timeOffForm: TimeOffFormState = createEmptyTimeOffForm();
+  newStaffMemberName = '';
 
   constructor() {
     this.notificationsService.ensurePolling();
@@ -613,16 +658,18 @@ export class AdminShellPage {
         await this.authService.fetchAdminProfile();
       }
 
-      const [salon, services, openingHours, timeOffBlocks, upcomingBookings] = await Promise.all([
+      const [salon, services, openingHours, timeOffBlocks, upcomingBookings, staffMembers] = await Promise.all([
         this.adminSetupApi.getSalon(),
         this.adminSetupApi.listServices(),
         this.adminSetupApi.getOpeningHours(),
         this.adminSetupApi.listTimeOffBlocks(),
         this.adminSetupApi.listUpcomingBookings(),
+        this.adminSetupApi.listStaffMembers(),
       ]);
 
       this.salon.set(salon);
       this.services.set(services);
+      this.staffMembers.set(staffMembers);
       this.timeOffBlocks.set(timeOffBlocks);
       this.upcomingBookings.set(upcomingBookings);
       this.applySalonForm(salon);
@@ -672,6 +719,8 @@ export class AdminShellPage {
         return 'SALON-PROFIL';
       case 'leistungen':
         return 'LEISTUNGEN';
+      case 'mitarbeiter':
+        return 'MITARBEITER';
       case 'oeffnungszeiten':
         return 'ÖFFNUNGSZEITEN';
       case 'abwesenheiten':
@@ -689,6 +738,8 @@ export class AdminShellPage {
         return 'Salon-Einstellungen';
       case 'leistungen':
         return 'Angebote verwalten';
+      case 'mitarbeiter':
+        return 'Team verwalten';
       case 'oeffnungszeiten':
         return 'Wöchentliche Zeiten';
       case 'abwesenheiten':
@@ -940,6 +991,46 @@ export class AdminShellPage {
       this.statusMessage.set('Sperrzeit entfernt.');
     } catch (error: unknown) {
       this.loadError.set(error instanceof Error ? error.message : 'Die Sperrzeit konnte nicht entfernt werden.');
+    }
+  }
+
+  async addStaffMember(): Promise<void> {
+    const name = this.newStaffMemberName.trim();
+
+    if (!name) {
+      return;
+    }
+
+    this.savingStaffMember.set(true);
+    this.loadError.set(null);
+
+    try {
+      const member = await this.adminSetupApi.createStaffMember({ name, sortOrder: this.staffMembers().length });
+      this.staffMembers.set([...this.staffMembers(), member]);
+      this.newStaffMemberName = '';
+      this.statusMessage.set('Mitarbeiter hinzugefügt.');
+    } catch (error: unknown) {
+      this.loadError.set(error instanceof Error ? error.message : 'Der Mitarbeiter konnte nicht gespeichert werden.');
+    } finally {
+      this.savingStaffMember.set(false);
+    }
+  }
+
+  async removeStaffMember(staffMemberId: string): Promise<void> {
+    const shouldDelete = window.confirm('Diesen Mitarbeiter entfernen? Er wird nicht mehr als Buchungsoption angezeigt.');
+
+    if (!shouldDelete) {
+      return;
+    }
+
+    this.loadError.set(null);
+
+    try {
+      await this.adminSetupApi.deleteStaffMember(staffMemberId);
+      this.staffMembers.set(this.staffMembers().filter((m) => m.id !== staffMemberId));
+      this.statusMessage.set('Mitarbeiter entfernt.');
+    } catch (error: unknown) {
+      this.loadError.set(error instanceof Error ? error.message : 'Der Mitarbeiter konnte nicht entfernt werden.');
     }
   }
 

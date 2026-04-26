@@ -1,4 +1,4 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -22,33 +22,30 @@ export class AuthService {
   readonly lastError = signal<string | null>(null);
 
   constructor() {
-    this.initPromise = new Promise((resolve) => {
+    this.initPromise = (async () => {
       if (!firebaseAuth) {
         this.initialized.set(true);
-        resolve();
         return;
       }
 
       const auth = firebaseAuth;
 
-      let firstEventHandled = false;
+      onAuthStateChanged(auth, (user) => {
+        this.currentUser.set(user);
 
-      void ensureFirebaseBrowserPersistence().finally(() => {
-        onAuthStateChanged(auth, (user) => {
-          this.currentUser.set(user);
-
-          if (!user) {
-            this.adminProfile.set(null);
-          }
-
-          if (!firstEventHandled) {
-            firstEventHandled = true;
-            this.initialized.set(true);
-            resolve();
-          }
-        });
+        if (!user) {
+          this.adminProfile.set(null);
+        }
       });
-    });
+
+      try {
+        await ensureFirebaseBrowserPersistence();
+        await auth.authStateReady();
+        this.currentUser.set(auth.currentUser);
+      } finally {
+        this.initialized.set(true);
+      }
+    })();
   }
 
   isFirebaseConfigured(): boolean {
@@ -83,13 +80,17 @@ export class AuthService {
   }
 
   async fetchAdminProfile(): Promise<AdminProfile> {
+    return this.fetchAdminProfileWithRetry(false);
+  }
+
+  private async fetchAdminProfileWithRetry(forceRefreshToken: boolean): Promise<AdminProfile> {
     const user = firebaseAuth?.currentUser;
 
     if (!user) {
       throw new Error('No authenticated admin found.');
     }
 
-    const idToken = await user.getIdToken();
+    const idToken = await user.getIdToken(forceRefreshToken);
 
     try {
       const profile = await firstValueFrom(
@@ -103,10 +104,18 @@ export class AuthService {
       this.adminProfile.set(profile);
       return profile;
     } catch (error: unknown) {
-      const maybeHttpError = error as { status?: number };
+      const maybeHttpError = error as HttpErrorResponse;
 
-      if (maybeHttpError.status === 403) {
-        this.lastError.set('Access denied. Contact the system admin.');
+      if (!forceRefreshToken && (maybeHttpError.status === 401 || maybeHttpError.status === 403)) {
+        return this.fetchAdminProfileWithRetry(true);
+      }
+
+      if (maybeHttpError.status === 401 || maybeHttpError.status === 403) {
+        this.lastError.set(
+          maybeHttpError.status === 403
+            ? 'Access denied. Contact the system admin.'
+            : 'Your admin session expired. Please sign in again.',
+        );
         await this.signOut();
       }
 

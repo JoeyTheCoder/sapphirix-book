@@ -105,3 +105,10 @@ export type UpdateSalonProfileInput = z.infer<typeof updateSalonProfileSchema>;
 export type CreateServiceInput = z.infer<typeof createServiceSchema>;
 export type ReplaceOpeningHoursInput = z.infer<typeof replaceOpeningHoursSchema>;
 export type CreateTimeOffBlockInput = z.infer<typeof createTimeOffBlockSchema>;
+
+export const createStaffMemberSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  sortOrder: z.number().int().min(0).default(0),
+});
+
+export type CreateStaffMemberInput = z.infer<typeof createStaffMemberSchema>;

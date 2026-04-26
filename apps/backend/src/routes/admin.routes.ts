@@ -5,6 +5,7 @@ import { requireAdminAuth } from '../middleware/require-admin-auth.js';
 import { validateBody } from '../middleware/validate-body.js';
 import {
   createServiceSchema,
+  createStaffMemberSchema,
   createTimeOffBlockSchema,
   replaceOpeningHoursSchema,
   updateSalonProfileSchema,
@@ -18,11 +19,14 @@ import {
 import {
   archiveService,
   createService,
+  createStaffMember,
   createTimeOffBlock,
+  deleteStaffMember,
   deleteTimeOffBlock,
   getOpeningHours,
   getSalonProfile,
   listServices,
+  listStaffMembers,
   listTimeOffBlocks,
   replaceOpeningHours,
   setSalonLogo,
@@ -32,6 +36,7 @@ import {
 import { listNotificationsForAdmin, markNotificationsAsRead } from '../modules/admin/admin-notifications.service.js';
 import {
   createAdminBookingForSalon,
+  deleteBookingForSalon,
   getBookingDetailForSalon,
   listBookingsForSalon,
   listCalendarBookingsForSalon,
@@ -269,6 +274,46 @@ export function createAdminRouter(): Router {
       const bookingId = readRouteParam(req.params.bookingId, 'bookingId');
       const booking = await updateBookingForSalon(res.locals.adminContext.salon.id, bookingId, req.body);
       res.json({ booking });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.delete('/bookings/:bookingId', async (req, res, next) => {
+    try {
+      const bookingId = readRouteParam(req.params.bookingId, 'bookingId');
+      await deleteBookingForSalon(res.locals.adminContext.salon.id, bookingId);
+      res.status(204).send();
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // ── Staff members ──────────────────────────────────────────────────────────
+
+  router.get('/staff-members', async (_req, res, next) => {
+    try {
+      const members = await listStaffMembers(res.locals.adminContext.salon.id);
+      res.json({ staffMembers: members });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post('/staff-members', validateBody(createStaffMemberSchema), async (req, res, next) => {
+    try {
+      const member = await createStaffMember(res.locals.adminContext.salon.id, req.body);
+      res.status(201).json({ staffMember: member });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.delete('/staff-members/:staffMemberId', async (req, res, next) => {
+    try {
+      const staffMemberId = readRouteParam(req.params.staffMemberId, 'staffMemberId');
+      await deleteStaffMember(res.locals.adminContext.salon.id, staffMemberId);
+      res.status(204).send();
     } catch (error) {
       next(error);
     }

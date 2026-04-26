@@ -15,6 +15,8 @@ import type {
   SalonProfilePayload,
   ServiceItem,
   ServicePayload,
+  StaffMember,
+  StaffMemberPayload,
   TimeOffBlock,
   TimeOffBlockPayload,
 } from './admin-setup.types';
@@ -190,5 +192,29 @@ export class AdminSetupApiService {
       this.http.patch<{ booking: AdminBookingItem }>(`${adminApiBaseUrl}/bookings/${bookingId}`, { status }, { headers }),
     );
     return response.booking;
+  }
+
+  async deleteBooking(bookingId: string): Promise<void> {
+    const headers = await this.createAuthHeaders();
+    await firstValueFrom(this.http.delete(`${adminApiBaseUrl}/bookings/${bookingId}`, { headers }));
+  }
+
+  async listStaffMembers(): Promise<StaffMember[]> {
+    const headers = await this.createAuthHeaders();
+    const response = await firstValueFrom(this.http.get<{ staffMembers: StaffMember[] }>(`${adminApiBaseUrl}/staff-members`, { headers }));
+    return response.staffMembers;
+  }
+
+  async createStaffMember(payload: StaffMemberPayload): Promise<StaffMember> {
+    const headers = await this.createAuthHeaders();
+    const response = await firstValueFrom(
+      this.http.post<{ staffMember: StaffMember }>(`${adminApiBaseUrl}/staff-members`, payload, { headers }),
+    );
+    return response.staffMember;
+  }
+
+  async deleteStaffMember(staffMemberId: string): Promise<void> {
+    const headers = await this.createAuthHeaders();
+    await firstValueFrom(this.http.delete(`${adminApiBaseUrl}/staff-members/${staffMemberId}`, { headers }));
   }
 }

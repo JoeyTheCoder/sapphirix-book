@@ -22,6 +22,7 @@ type BookingFormState = {
   email: string;
   phone: string;
   notes: string;
+  staffMemberPreference: string;
 };
 
 type BookingFormField = 'firstName' | 'lastName' | 'email' | 'phone';
@@ -88,6 +89,7 @@ function createEmptyBookingForm(): BookingFormState {
     email: '',
     phone: '',
     notes: '',
+    staffMemberPreference: '',
   };
 }
 
@@ -112,7 +114,24 @@ function readErrorMessage(error: unknown, fallbackMessage: string): string {
   standalone: true,
   imports: [FormsModule, NgFor, NgIf, TurnstileWidgetComponent, AppFooterComponent],
   styles: [`
-    .ff-public-header-inner { max-width: 720px; margin: 0 auto; display: flex; align-items: center; gap: 14px; }
+    .ff-public-header-inner { max-width: 720px; margin: 0 auto; display: flex; align-items: flex-start; justify-content: space-between; gap: 14px 18px; flex-wrap: wrap; }
+    .ff-public-salon-brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
+    .ff-public-platform-badge { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 4px; flex-shrink: 0; padding-top: 2px; opacity: 0.8; }
+    .ff-public-platform-eyebrow {
+      display: inline-block;
+      margin: 0;
+      font-size: 10px;
+      line-height: 1;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ff-ink-faint);
+      white-space: nowrap;
+    }
+    .ff-public-platform-wordmark {
+      display: block;
+      height: 24px;
+      width: auto;
+    }
     .ff-public-page { max-width: 720px; margin: 0 auto; padding: 40px 24px; }
     .ff-public-step-indicator { display: flex; gap: 16px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ff-ink-faint); }
     .ff-public-confirm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -122,7 +141,11 @@ function readErrorMessage(error: unknown, fallbackMessage: string): string {
     .ff-public-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .ff-public-form-span { grid-column: span 2; }
     @media (max-width: 760px) {
-      .ff-public-header-inner { align-items: flex-start; }
+      .ff-public-header-inner { align-items: center; }
+      .ff-public-salon-brand { width: 100%; }
+      .ff-public-platform-badge { gap: 3px; padding-top: 0; }
+      .ff-public-platform-eyebrow { font-size: 10px; }
+      .ff-public-platform-wordmark { height: 20px; }
       .ff-public-page { padding: 24px 16px 32px; }
       .ff-public-step-indicator { gap: 10px; overflow-x: auto; padding-bottom: 2px; }
       .ff-public-confirm-grid, .ff-public-form-grid { grid-template-columns: 1fr; }
@@ -138,13 +161,20 @@ function readErrorMessage(error: unknown, fallbackMessage: string): string {
       <!-- Header -->
       <header style="background:var(--ff-surface);border-bottom:1px solid var(--ff-line);padding:16px 24px;">
         <div class="ff-public-header-inner">
-          <div style="width:48px;height:48px;border-radius:var(--ff-r-md);border:1px solid var(--ff-line);overflow:hidden;display:flex;align-items:center;justify-content:center;background:var(--ff-bg-muted);flex-shrink:0;">
-            <img *ngIf="logoUrl()" [src]="logoUrl()!" alt="Logo" style="width:48px;height:48px;object-fit:cover;" />
-            <img *ngIf="!logoUrl()" src="assets/images/logo-notext.png" alt="FadeFlow" style="width:32px;height:32px;object-fit:contain;" />
+          <div class="ff-public-salon-brand" *ngIf="salon() as s">
+            <div style="width:48px;height:48px;border-radius:var(--ff-r-md);border:1px solid var(--ff-line);overflow:hidden;display:flex;align-items:center;justify-content:center;background:var(--ff-bg-muted);flex-shrink:0;">
+              <img *ngIf="logoUrl()" [src]="logoUrl()!" alt="Logo" style="width:48px;height:48px;object-fit:cover;" />
+              <img *ngIf="!logoUrl()" src="assets/images/logo-notext.png" alt="FadeFlow" style="width:32px;height:32px;object-fit:contain;" />
+            </div>
+            <div>
+              <h1 style="font-size:18px;font-weight:700;color:var(--ff-ink);margin:0;">{{ s.name }}</h1>
+              <p class="ff-mono" style="font-size:11px;color:var(--ff-ink-muted);margin:2px 0 0 0;">{{ s.addressLine1 }}{{ s.city ? ', ' + s.city : '' }}</p>
+            </div>
           </div>
-          <div *ngIf="salon() as s">
-            <h1 style="font-size:18px;font-weight:700;color:var(--ff-ink);margin:0;">{{ s.name }}</h1>
-            <p class="ff-mono" style="font-size:11px;color:var(--ff-ink-muted);margin:2px 0 0 0;">{{ s.addressLine1 }}{{ s.city ? ', ' + s.city : '' }}</p>
+
+          <div class="ff-public-platform-badge" aria-label="Powered by FadeFlow">
+            <span class="ff-mono ff-public-platform-eyebrow">Powered by</span>
+            <img class="ff-public-platform-wordmark" src="assets/images/Logo-textside.png" alt="FadeFlow" />
           </div>
         </div>
       </header>
@@ -363,6 +393,14 @@ function readErrorMessage(error: unknown, fallbackMessage: string): string {
                 <div class="ff-public-form-span">
                   <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Hinweise (optional)</label>
                   <textarea [(ngModel)]="bookingForm.notes" name="notes" rows="3" class="ff-input" style="width:100%;box-sizing:border-box;resize:vertical;"></textarea>
+                </div>
+                <div class="ff-public-form-span" *ngIf="salon()?.staffMembers?.length">
+                  <label style="display:block;font-size:12px;font-weight:500;color:var(--ff-ink-muted);margin-bottom:6px;">Wunsch-Mitarbeiter (optional)</label>
+                  <select [(ngModel)]="bookingForm.staffMemberPreference" name="staffMemberPreference" class="ff-input" style="width:100%;box-sizing:border-box;">
+                    <option value="">Kein Wunsch / Egal</option>
+                    <option *ngFor="let m of salon()?.staffMembers" [value]="m.name">{{ m.name }}</option>
+                  </select>
+                  <p style="font-size:11px;color:var(--ff-ink-faint);margin:6px 0 0 0;">Wir versuchen, deinen Wunsch zu berücksichtigen.</p>
                 </div>
               </div>
               <div *ngIf="botProtectionEnabled()" style="margin-top:16px;">
@@ -660,12 +698,14 @@ export class PublicBookingPage {
           phone: this.bookingForm.phone.trim(),
         },
         botProtectionToken: this.botProtectionToken() ?? undefined,
+        staffMemberPreference: this.bookingForm.staffMemberPreference || undefined,
         customerNotes: this.bookingForm.notes.trim() || undefined,
       });
 
       this.completedBooking.set(booking);
       this.selectedSlot.set(null);
       this.bookingForm.notes = '';
+      this.bookingForm.staffMemberPreference = '';
       this.formErrors.set({});
       this.turnstileWidget?.reset();
       this.botProtectionToken.set(null);

@@ -55,6 +55,7 @@ export type AdminBookingItem = {
   currency: string;
   customerNotes: string | null;
   internalNotes: string | null;
+  staffMemberPreference: string | null;
   customer: {
     firstName: string;
     lastName: string;
@@ -145,4 +146,16 @@ export type TimeOffBlockPayload = {
   startsAt: string;
   endsAt: string;
   reason?: string;
+};
+
+export type StaffMember = {
+  id: string;
+  name: string;
+  sortOrder: number;
+  createdAt: string;
+};
+
+export type StaffMemberPayload = {
+  name: string;
+  sortOrder?: number;
 };

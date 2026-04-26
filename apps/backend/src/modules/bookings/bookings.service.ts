@@ -55,6 +55,7 @@ type BookingListRow = {
   currency: string;
   customerNotes: string | null;
   internalNotes: string | null;
+  staffMemberPreference: string | null;
   customerFirstName: string;
   customerLastName: string;
   customerEmail: string | null;
@@ -353,6 +354,7 @@ function mapBookingRow(row: BookingListRow) {
     currency: row.currency,
     customerNotes: row.customerNotes,
     internalNotes: row.internalNotes,
+    staffMemberPreference: row.staffMemberPreference,
     customer: {
       firstName: row.customerFirstName,
       lastName: row.customerLastName,
@@ -426,6 +428,7 @@ async function insertCustomerAndBooking(
       currency: service.currency,
       customerNotes: input.customerNotes,
       internalNotes: null,
+      staffMemberPreference: input.staffMemberPreference ?? null,
     })
     .returning({
       id: bookings.id,
@@ -464,6 +467,7 @@ async function listBookingRows(whereClause: ReturnType<typeof and>) {
       currency: bookings.currency,
       customerNotes: bookings.customerNotes,
       internalNotes: bookings.internalNotes,
+      staffMemberPreference: bookings.staffMemberPreference,
       customerFirstName: customers.firstName,
       customerLastName: customers.lastName,
       customerEmail: customers.email,
@@ -653,7 +657,6 @@ export async function listCalendarBookingsForSalon(salonId: string, query: Admin
       eq(bookings.salonId, salonId),
       gte(bookings.startsAt, startBounds.startsAt),
       lt(bookings.startsAt, endExclusive),
-      ne(bookings.status, 'cancelled'),
     )!,
   );
 
@@ -691,6 +694,17 @@ export async function updateBookingForSalon(salonId: string, bookingId: string, 
   }
 
   return getBookingDetailForSalon(salonId, bookingId);
+}
+
+export async function deleteBookingForSalon(salonId: string, bookingId: string) {
+  const [booking] = await db
+    .delete(bookings)
+    .where(and(eq(bookings.id, bookingId), eq(bookings.salonId, salonId)))
+    .returning({ id: bookings.id });
+
+  if (!booking) {
+    throw new HttpError(404, 'Booking not found');
+  }
 }
 
 export async function listUpcomingBookingsForSalon(salonId: string) {

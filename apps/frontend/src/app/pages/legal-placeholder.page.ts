@@ -1,5 +1,6 @@
 import { NgFor } from '@angular/common';
 import { Component, computed, inject } from '@angular/core';
+import { Location } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 
 import { AppFooterComponent } from '../shared/app-footer.component';
@@ -21,11 +22,11 @@ const legalContent: Record<LegalPageKey, LegalPageContent> = {
   impressum: {
     eyebrow: 'RECHTLICHES',
     title: 'Impressum',
-    lead: 'Platzhalterseite für die Anbieterkennzeichnung dieser Anwendung.',
+    lead: '',
     blocks: [
       {
         heading: 'Betreiber',
-        body: 'FadeFlow GmbH, Musterstrasse 12, 8000 Zürich, Schweiz.',
+        body: 'Joel Sahli',
       },
       {
         heading: 'Kontakt',
@@ -84,8 +85,36 @@ const legalContent: Record<LegalPageKey, LegalPageContent> = {
   selector: 'app-legal-placeholder-page',
   standalone: true,
   imports: [NgFor, AppFooterComponent],
+  styles: [`
+    .ff-legal-header { background: var(--ff-surface); border-bottom: 1px solid var(--ff-line); padding: 14px 24px; }
+    .ff-legal-header-inner { max-width: 760px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .ff-legal-back-btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 7px 14px;
+      font-size: 13px; font-weight: 500; color: var(--ff-ink-muted);
+      background: transparent; border: 1px solid var(--ff-line);
+      border-radius: var(--ff-r-md); cursor: pointer;
+      transition: color 120ms, border-color 120ms;
+    }
+    .ff-legal-back-btn:hover { color: var(--ff-ink); border-color: var(--ff-line-strong); }
+    @media (max-width: 760px) {
+      .ff-legal-header { padding: 12px 16px; }
+    }
+  `],
   template: `
     <div style="min-height:100vh;background:var(--ff-bg);display:flex;flex-direction:column;">
+
+      <!-- Navbar -->
+      <header class="ff-legal-header">
+        <div class="ff-legal-header-inner">
+          <img src="assets/images/Logo-textside.png" alt="FadeFlow" style="height:26px;width:auto;" />
+          <button type="button" class="ff-legal-back-btn" (click)="goBack()">
+            <i class="pi pi-arrow-left" style="font-size:12px;"></i>
+            Zurück
+          </button>
+        </div>
+      </header>
+
       <main style="flex:1;">
         <div style="max-width:760px;margin:0 auto;padding:40px 24px 56px;">
           <p class="ff-mono" style="font-size:10px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:var(--ff-ink-faint);margin:0 0 10px;">{{ content().eyebrow }}</p>
@@ -107,9 +136,14 @@ const legalContent: Record<LegalPageKey, LegalPageContent> = {
 })
 export class LegalPlaceholderPage {
   private readonly route = inject(ActivatedRoute);
+  private readonly location = inject(Location);
 
   readonly content = computed(() => {
     const key = (this.route.snapshot.data['page'] as LegalPageKey | undefined) ?? 'impressum';
     return legalContent[key];
   });
+
+  goBack(): void {
+    this.location.back();
+  }
 }

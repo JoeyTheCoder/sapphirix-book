@@ -1,5 +1,5 @@
 import { NgFor, NgIf } from '@angular/common';
-import { Component, OnDestroy, inject, signal } from '@angular/core';
+import { Component, OnDestroy, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
@@ -334,7 +334,7 @@ function createEmptyManualBookingForm(selectedDate: string): ManualBookingFormSt
               <div class="ff-mono ff-timeline-hour">{{ row.label }}</div>
               <!-- Slot content -->
               <div class="ff-timeline-slot">
-                <div *ngIf="bookingAt(row.time) as booking; else emptySlot">
+                <div *ngIf="activeBookingAt(row.time) as booking; else emptySlot">
                   <button
                     type="button"
                     (click)="openDetailDrawer(booking.id)"
@@ -360,6 +360,20 @@ function createEmptyManualBookingForm(selectedDate: string): ManualBookingFormSt
                     <span class="ff-mono" style="font-size:11px; letter-spacing:0.1em;">Verfügbar</span>
                   </button>
                 </ng-template>
+                <button
+                  *ngIf="cancelledBookingAt(row.time) as cancelledBooking"
+                  type="button"
+                  (click)="openDetailDrawer(cancelledBooking.id)"
+                  class="ff-booking-block status-cancelled"
+                  style="width:100%; text-align:left; cursor:pointer; margin-top:8px; opacity:0.85;"
+                >
+                  <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                    <span class="ff-mono" style="font-size:11px; color:var(--ff-ink-faint);">{{ formatTimeValue(cancelledBooking.startsAt) }}–{{ formatTimeValue(cancelledBooking.endsAt) }}</span>
+                    <span class="ff-status-chip chip-cancelled">{{ getStatusLabel(cancelledBooking.status) }}</span>
+                  </div>
+                  <p style="font-size:13px; font-weight:600; color:var(--ff-ink); margin:0 0 2px;">{{ cancelledBooking.customer.firstName }} {{ cancelledBooking.customer.lastName }}</p>
+                  <p style="font-size:12px; color:var(--ff-ink-muted); margin:0;">{{ cancelledBooking.service.name }}</p>
+                </button>
               </div>
             </div>
           </div>
@@ -479,6 +493,12 @@ function createEmptyManualBookingForm(selectedDate: string): ManualBookingFormSt
           <p style="font-size:13px; color:var(--ff-ink-muted); white-space:pre-wrap; margin:0;">{{ booking.customerNotes || 'Keine Notizen' }}</p>
         </div>
 
+        <!-- Staff preference -->
+        <div *ngIf="booking.staffMemberPreference" style="border:1px solid var(--ff-line); border-radius:var(--ff-r-md); padding:14px;">
+          <p class="ff-mono" style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:var(--ff-ink-faint); margin:0 0 6px;">Wunsch-Mitarbeiter</p>
+          <p style="font-size:13px; color:var(--ff-ink); margin:0;">{{ booking.staffMemberPreference }}</p>
+        </div>
+
         <!-- Actions -->
         <div style="display:flex; flex-wrap:wrap; gap:8px; padding-top:8px; border-top:1px solid var(--ff-line); margin-top:auto;">
           <button *ngIf="booking.status === 'pending'" type="button" (click)="changeBookingStatus(booking.id, 'confirmed')" class="ff-btn ff-btn-ok">
@@ -489,6 +509,9 @@ function createEmptyManualBookingForm(selectedDate: string): ManualBookingFormSt
           </button>
           <button *ngIf="booking.status === 'confirmed'" type="button" (click)="changeBookingStatus(booking.id, 'completed')" class="ff-btn ff-btn-ink">
             Abgeschlossen
+          </button>
+          <button type="button" (click)="deleteBooking(booking.id)" class="ff-btn">
+            Endgueltig loeschen
           </button>
         </div>
       </div>
@@ -521,11 +544,23 @@ export class AdminBookingsPage implements OnDestroy {
 
   manualBookingForm: ManualBookingFormState = createEmptyManualBookingForm(getTodayIsoDate());
   private hasInitializedFromRoute = false;
+  private lastHandledBookingFeedVersion = 0;
 
   constructor() {
     this.isCompactCalendar.set(this.compactCalendarMedia?.matches ?? false);
     this.compactCalendarMedia?.addEventListener('change', this.handleCompactCalendarChange);
     this.notificationsService.ensurePolling();
+    effect(() => {
+      const bookingFeedVersion = this.notificationsService.bookingFeedVersion();
+
+      if (bookingFeedVersion === 0 || bookingFeedVersion === this.lastHandledBookingFeedVersion) {
+        return;
+      }
+
+      this.lastHandledBookingFeedVersion = bookingFeedVersion;
+      void this.refreshBookingsInBackground();
+    });
+
     this.route.queryParamMap.subscribe((params) => {
       const queryDate = params.get('date');
       const nextDate = this.isValidIsoDate(queryDate) ? queryDate : getTodayIsoDate();
@@ -554,20 +589,16 @@ export class AdminBookingsPage implements OnDestroy {
       }
 
       const selectedDate = this.selectedDate();
-      const weekDates = getWeekDates(selectedDate);
-      const [salon, services, openingHours, bookings, weekCalendar] = await Promise.all([
+      const [salon, services, openingHours] = await Promise.all([
         this.adminSetupApi.getSalon(),
         this.adminSetupApi.listServices(),
         this.adminSetupApi.getOpeningHours(),
-        this.adminSetupApi.listBookings(selectedDate),
-        this.adminSetupApi.listCalendarBookings(weekDates[0]!, weekDates[6]!),
       ]);
 
       this.salon.set(salon);
       this.services.set(services.filter((service) => service.active));
       this.openingHours.set(openingHours);
-      this.bookings.set(bookings);
-      this.weekCalendar.set(weekCalendar);
+      await this.refreshBookingCollections();
 
       if (!this.manualBookingForm.serviceId && services[0]) {
         this.manualBookingForm.serviceId = services[0].id;
@@ -579,6 +610,30 @@ export class AdminBookingsPage implements OnDestroy {
       this.loadError.set(error instanceof Error ? error.message : 'Die Termine konnten nicht geladen werden.');
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  private async refreshBookingCollections(): Promise<void> {
+    const selectedDate = this.selectedDate();
+    const weekDates = getWeekDates(selectedDate);
+    const [bookings, weekCalendar] = await Promise.all([
+      this.adminSetupApi.listBookings(selectedDate),
+      this.adminSetupApi.listCalendarBookings(weekDates[0]!, weekDates[6]!),
+    ]);
+
+    this.bookings.set(bookings);
+    this.weekCalendar.set(weekCalendar);
+  }
+
+  private async refreshBookingsInBackground(): Promise<void> {
+    if (this.loading() || !this.authService.currentUser()) {
+      return;
+    }
+
+    try {
+      await this.refreshBookingCollections();
+    } catch {
+      // Keep the current list view intact when a background sync fails.
     }
   }
 
@@ -623,8 +678,16 @@ export class AdminBookingsPage implements OnDestroy {
     return rows;
   }
 
-  bookingAt(time: string): AdminBookingItem | undefined {
-    return this.bookings().find((booking) => toDateTimeLocalInput(booking.startsAt).slice(11, 16) === time);
+  activeBookingAt(time: string): AdminBookingItem | undefined {
+    return this.bookings().find(
+      (booking) => booking.status !== 'cancelled' && toDateTimeLocalInput(booking.startsAt).slice(11, 16) === time,
+    );
+  }
+
+  cancelledBookingAt(time: string): AdminBookingItem | undefined {
+    return this.bookings().find(
+      (booking) => booking.status === 'cancelled' && toDateTimeLocalInput(booking.startsAt).slice(11, 16) === time,
+    );
   }
 
   countBookingsForDate(date: string): number {
@@ -719,6 +782,25 @@ export class AdminBookingsPage implements OnDestroy {
       this.detailDrawerOpen.set(true);
     } catch (error: unknown) {
       this.loadError.set(error instanceof Error ? error.message : 'Der Termin konnte nicht aktualisiert werden.');
+    }
+  }
+
+  async deleteBooking(bookingId: string): Promise<void> {
+    const shouldDelete = window.confirm('Diesen Termin endgueltig loeschen? Diese Aktion kann nicht rueckgaengig gemacht werden.');
+
+    if (!shouldDelete) {
+      return;
+    }
+
+    this.loadError.set(null);
+
+    try {
+      await this.adminSetupApi.deleteBooking(bookingId);
+      this.statusMessage.set('Termin endgueltig geloescht.');
+      this.closeDrawers();
+      await this.reload();
+    } catch (error: unknown) {
+      this.loadError.set(error instanceof Error ? error.message : 'Der Termin konnte nicht geloescht werden.');
     }
   }
 
