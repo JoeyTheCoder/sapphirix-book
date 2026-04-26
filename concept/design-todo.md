@@ -1,4 +1,0 @@
-- the logo in the footer still looks very torn apart, take the logo-textside for it and fix this
-- in mobile the notification dropdown opens so it covers the notification symbol it should open up nicely below it so it can also be closed by clicking the notification bell icon again
-- in mobile view the powered by fadeflow text and logo combination looks a bit crammed this needs to be cleaned up
-- BUG: The bug still persists that i get logged out from the admin view after visiting the public booking link in the same browser, find out why and fix this permanently

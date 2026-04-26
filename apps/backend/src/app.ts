@@ -2,6 +2,7 @@ import cors from 'cors';
 import express, { type Express } from 'express';
 
 import { errorHandler } from './middleware/error-handler.js';
+import { HttpError } from './errors/http-error.js';
 import { notFoundHandler } from './middleware/not-found-handler.js';
 import { createRateLimitMiddleware } from './middleware/rate-limit.js';
 import { attachRequestContext, logRequestCompletion } from './middleware/request-context.js';
@@ -10,7 +11,19 @@ import { uploadsRoot } from './uploads/storage.js';
 import { getEnv } from './config/env.js';
 
 function registerCoreMiddleware(app: Express): void {
-  app.use(cors());
+  const env = getEnv();
+  const allowedOrigin = new URL(env.PUBLIC_APP_ORIGIN).origin;
+
+  app.use(cors({
+    origin(origin, callback) {
+      if (!origin || origin === allowedOrigin) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new HttpError(403, 'CORS origin is not allowed', { origin }));
+    },
+  }));
   app.use(express.json());
   app.use(attachRequestContext);
   app.use(logRequestCompletion);

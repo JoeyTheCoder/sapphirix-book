@@ -1,5 +1,7 @@
 import { TestBed } from '@angular/core/testing';
+
 import { App } from './app';
+import { routes } from './app.routes';
 
 describe('App', () => {
   beforeEach(async () => {
@@ -14,10 +16,28 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
-  it('should render title', async () => {
+  it('should render the root router outlet', () => {
     const fixture = TestBed.createComponent(App);
-    await fixture.whenStable();
+    fixture.detectChanges();
+
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, frontend');
+
+    expect(compiled.querySelector('router-outlet')).not.toBeNull();
+  });
+
+  it('should redirect the root path to the admin login', () => {
+    expect(routes[0]).toMatchObject({
+      path: '',
+      pathMatch: 'full',
+      redirectTo: 'admin/login',
+    });
+  });
+
+  it('should expose the legal routes', () => {
+    const legalPaths = routes
+      .filter((route) => ['impressum', 'datenschutz', 'agb', 'kontakt'].includes(route.path ?? ''))
+      .map((route) => route.path);
+
+    expect(legalPaths).toEqual(['impressum', 'datenschutz', 'agb', 'kontakt']);
   });
 });

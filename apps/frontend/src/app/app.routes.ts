@@ -1,11 +1,6 @@
 import { Routes } from '@angular/router';
 
 import { adminAuthGuard } from './core/admin-auth.guard';
-import { AdminBookingsPage } from './pages/admin-bookings.page';
-import { AdminLoginPage } from './pages/admin-login.page';
-import { AdminShellPage } from './pages/admin-shell.page';
-import { LegalPlaceholderPage } from './pages/legal-placeholder.page';
-import { PublicBookingPage } from './pages/public-booking.page';
 
 export const routes: Routes = [
 	{
@@ -15,36 +10,36 @@ export const routes: Routes = [
 	},
 	{
 		path: 'admin/login',
-		component: AdminLoginPage,
+		loadComponent: () => import('./pages/admin-login.page').then((module) => module.AdminLoginPage),
 	},
 	{
 		path: 'admin',
-		component: AdminBookingsPage,
+		loadComponent: () => import('./pages/admin-bookings.page').then((module) => module.AdminBookingsPage),
 		canActivate: [adminAuthGuard],
 	},
 	{
 		path: 'admin/settings',
-		component: AdminShellPage,
+		loadComponent: () => import('./pages/admin-shell.page').then((module) => module.AdminShellPage),
 		canActivate: [adminAuthGuard],
 	},
 	{
 		path: 'impressum',
-		component: LegalPlaceholderPage,
+		loadComponent: () => import('./pages/legal-placeholder.page').then((module) => module.LegalPlaceholderPage),
 		data: { page: 'impressum' },
 	},
 	{
 		path: 'datenschutz',
-		component: LegalPlaceholderPage,
+		loadComponent: () => import('./pages/legal-placeholder.page').then((module) => module.LegalPlaceholderPage),
 		data: { page: 'datenschutz' },
 	},
 	{
 		path: 'agb',
-		component: LegalPlaceholderPage,
+		loadComponent: () => import('./pages/legal-placeholder.page').then((module) => module.LegalPlaceholderPage),
 		data: { page: 'agb' },
 	},
 	{
 		path: 'kontakt',
-		component: LegalPlaceholderPage,
+		loadComponent: () => import('./pages/legal-placeholder.page').then((module) => module.LegalPlaceholderPage),
 		data: { page: 'kontakt' },
 	},
 	{
@@ -53,7 +48,7 @@ export const routes: Routes = [
 	},
 	{
 		path: ':salonSlug',
-		component: PublicBookingPage,
+		loadComponent: () => import('./pages/public-booking.page').then((module) => module.PublicBookingPage),
 	},
 	{
 		path: '**',

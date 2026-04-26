@@ -8,7 +8,7 @@ import { definePreset } from '@primeuix/styled';
 
 import { routes } from './app.routes';
 
-const SapphirixPreset = definePreset(Aura, {
+const FadeFlowPreset = definePreset(Aura, {
   semantic: {
     primary: {
       50: '{violet.50}',
@@ -34,7 +34,7 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     providePrimeNG({
       theme: {
-        preset: SapphirixPreset,
+        preset: FadeFlowPreset,
         options: {
           darkModeSelector: false,
         },

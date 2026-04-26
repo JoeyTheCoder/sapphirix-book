@@ -2,9 +2,9 @@
 
 set -euo pipefail
 
-APP_ROOT="${APP_ROOT:-/var/www/sapphirix/app/current}"
-SHARED_ROOT="${SHARED_ROOT:-/var/www/sapphirix/shared}"
-BACKUP_ROOT="${BACKUP_ROOT:-/var/backups/sapphirix}"
+APP_ROOT="${APP_ROOT:-/var/www/fadeflow/app/current}"
+SHARED_ROOT="${SHARED_ROOT:-/var/www/fadeflow/shared}"
+BACKUP_ROOT="${BACKUP_ROOT:-/var/backups/fadeflow}"
 KEEP_DAYS="${KEEP_DAYS:-7}"
 
 ENV_FILE="${ENV_FILE:-$SHARED_ROOT/.env}"

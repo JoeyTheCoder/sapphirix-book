@@ -2,8 +2,8 @@
 
 set -euo pipefail
 
-APP_ROOT="${APP_ROOT:-/var/www/sapphirix/app/current}"
-SERVICE_NAME="${SERVICE_NAME:-sapphirix-backend}"
+APP_ROOT="${APP_ROOT:-/var/www/fadeflow/app/current}"
+SERVICE_NAME="${SERVICE_NAME:-fadeflow-backend}"
 
 cd "$APP_ROOT"
 

@@ -120,6 +120,7 @@ vi.mock('../middleware/require-admin-auth.js', () => ({
 describe('app smoke flows', () => {
   beforeEach(() => {
     process.env.DATABASE_URL = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5433/sapphirix_booking';
+    process.env.PUBLIC_APP_ORIGIN = 'https://fadeflow.ch';
     process.env.BOT_PROTECTION_ENABLED = 'false';
     process.env.TURNSTILE_SECRET_KEY = 'test-secret';
     vi.resetModules();
@@ -132,6 +133,26 @@ describe('app smoke flows', () => {
     expect(response.status).toBe(200);
     expect(response.body.salon.slug).toBe('demo-salon');
     expect(response.body.services).toHaveLength(1);
+  });
+
+  it('allows browser requests from the configured frontend origin', async () => {
+    const { createApp } = await import('../app.js');
+    const response = await request(createApp())
+      .get('/api/v1/salons/demo-salon/services')
+      .set('origin', 'https://fadeflow.ch');
+
+    expect(response.status).toBe(200);
+    expect(response.headers['access-control-allow-origin']).toBe('https://fadeflow.ch');
+  });
+
+  it('blocks browser requests from unexpected origins', async () => {
+    const { createApp } = await import('../app.js');
+    const response = await request(createApp())
+      .get('/api/v1/salons/demo-salon/services')
+      .set('origin', 'https://evil.example');
+
+    expect(response.status).toBe(403);
+    expect(response.body.error).toBe('CORS origin is not allowed');
   });
 
   it('returns availability for a service and date', async () => {

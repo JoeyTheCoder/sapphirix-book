@@ -1,5 +1,5 @@
 {
-  "name": "sapphirix-booking",
+  "name": "fadeflow-booking",
   "private": true,
   "scripts": {
     "env:sync": "node ./scripts/sync-frontend-env.mjs",

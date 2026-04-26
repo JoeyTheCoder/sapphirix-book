@@ -1,4 +1,4 @@
-name: Deploy Frontend
+name: Deploy Production
 
 on:
   workflow_dispatch:
@@ -7,8 +7,14 @@ on:
       - main
       - master
 
+env:
+  DEPLOY_ROOT: /var/www/fadeflow
+  FRONTEND_DEPLOY_PATH: /var/www/fadeflow/frontend/current
+  BACKEND_DEPLOY_PATH: /var/www/fadeflow/app/current
+  BACKEND_SERVICE_NAME: fadeflow-backend
+
 jobs:
-  deploy-frontend:
+  deploy-production:
     runs-on: ubuntu-latest
 
     steps:
@@ -32,6 +38,20 @@ jobs:
       - name: Build frontend
         run: pnpm --filter frontend build
 
+      - name: Build backend
+        run: pnpm --filter backend build
+
+      - name: Prepare backend deployment bundle
+        run: |
+          rm -rf .deploy
+          mkdir -p .deploy/app/current/apps/backend
+          cp package.json .deploy/app/current/package.json
+          cp pnpm-lock.yaml .deploy/app/current/pnpm-lock.yaml
+          cp pnpm-workspace.yaml .deploy/app/current/pnpm-workspace.yaml
+          cp apps/backend/package.json .deploy/app/current/apps/backend/package.json
+          cp -R apps/backend/dist .deploy/app/current/apps/backend/dist
+          cp -R apps/backend/drizzle .deploy/app/current/apps/backend/drizzle
+
       - name: Prepare SSH key
         env:
           VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
@@ -41,8 +61,38 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -p "${{ secrets.VPS_SSH_PORT || 22 }}" "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: Upload frontend files
+      - name: Ensure remote directories exist
+        run: |
+          ssh -p "${{ secrets.VPS_SSH_PORT || 22 }}" "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" "mkdir -p '${{ env.FRONTEND_DEPLOY_PATH }}' '${{ env.BACKEND_DEPLOY_PATH }}'"
+
+      - name: Upload frontend build
         run: |
           rsync -az --delete -e "ssh -p ${{ secrets.VPS_SSH_PORT || 22 }}" \
             apps/frontend/dist/frontend/browser/ \
-            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_FRONTEND_PATH }}/"
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ env.FRONTEND_DEPLOY_PATH }}/"
+
+      - name: Upload backend build bundle
+        run: |
+          rsync -az --delete \
+            --exclude '.env' \
+            --exclude '.env.*' \
+            --exclude 'node_modules' \
+            -e "ssh -p ${{ secrets.VPS_SSH_PORT || 22 }}" \
+            .deploy/app/current/ \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ env.BACKEND_DEPLOY_PATH }}/"
+
+      - name: Install prod deps, migrate, and restart backend
+        run: |
+          ssh -p "${{ secrets.VPS_SSH_PORT || 22 }}" "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" "
+            set -euo pipefail
+            cd '${{ env.BACKEND_DEPLOY_PATH }}'
+            corepack enable
+            corepack prepare pnpm@10.33.0 --activate
+            pnpm install --filter backend --prod --frozen-lockfile
+            pnpm --filter backend run db:migrate:prod
+            sudo systemctl restart '${{ env.BACKEND_SERVICE_NAME }}'
+            sudo systemctl status '${{ env.BACKEND_SERVICE_NAME }}' --no-pager
+            if sudo systemctl is-active --quiet nginx; then
+              sudo systemctl reload nginx
+            fi
+          "

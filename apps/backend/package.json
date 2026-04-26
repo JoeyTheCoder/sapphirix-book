@@ -9,6 +9,7 @@
     "test:smoke": "vitest run src/smoke",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/scripts/db-migrate.ts",
+    "db:migrate:prod": "node dist/scripts/db-migrate.js",
     "provision:dev-admin": "tsx src/scripts/provision-dev-admin.ts"
   },
   "dependencies": {
