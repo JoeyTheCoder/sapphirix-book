@@ -4,7 +4,6 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - main
       - master
 
 env:
@@ -34,6 +33,17 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Create frontend build env
+        env:
+          FRONTEND_ENV: ${{ secrets.FRONTEND_ENV }}
+        run: |
+          if [ -z "$FRONTEND_ENV" ]; then
+            echo "Missing GitHub Actions secret: FRONTEND_ENV"
+            exit 1
+          fi
+
+          printf '%s\n' "$FRONTEND_ENV" > .env
 
       - name: Build frontend
         run: pnpm --filter frontend build
