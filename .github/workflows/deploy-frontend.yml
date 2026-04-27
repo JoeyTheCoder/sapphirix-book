@@ -99,6 +99,11 @@ jobs:
             corepack enable
             corepack prepare pnpm@10.33.0 --activate
             pnpm install --filter backend --prod --frozen-lockfile
+            if [ ! -f '${{ env.DEPLOY_ROOT }}/shared/.env' ]; then
+              echo 'Missing shared env file: ${{ env.DEPLOY_ROOT }}/shared/.env'
+              exit 1
+            fi
+            ln -sfn '${{ env.DEPLOY_ROOT }}/shared/.env' '${{ env.BACKEND_DEPLOY_PATH }}/.env'
             pnpm --filter backend run db:migrate:prod
             sudo systemctl restart '${{ env.BACKEND_SERVICE_NAME }}'
             sudo systemctl status '${{ env.BACKEND_SERVICE_NAME }}' --no-pager

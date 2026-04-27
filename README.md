@@ -460,6 +460,20 @@ Create the final `systemd` unit directly on the server, for example:
 /etc/systemd/system/fadeflow-backend.service
 ```
 
+A checked-in example unit is available at:
+
+```text
+infra/systemd/fadeflow-backend.service
+```
+
+That unit reads the production env from:
+
+```text
+/var/www/fadeflow/shared/.env
+```
+
+Set `User` and `Group` in the unit to the deploy account that owns `/var/www/fadeflow` on the VPS before enabling it.
+
 Then enable and start it:
 
 ```bash
